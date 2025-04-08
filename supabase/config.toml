@@ -1,1 +1,5 @@
+
 project_id = "mausvzbzorurkcoruhev"
+
+[functions.check-handles]
+verify_jwt = true

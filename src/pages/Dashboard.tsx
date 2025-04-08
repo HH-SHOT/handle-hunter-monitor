@@ -1,11 +1,162 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import DashboardDemo from '@/components/DashboardDemo';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { toast } from "@/hooks/use-toast";
+import { supabase } from '@/integrations/supabase/client';
+import {
+  User,
+  LogOut,
+  Settings,
+  CreditCard,
+  Bell,
+  BarChart3,
+  RefreshCw
+} from 'lucide-react';
 
 const Dashboard = () => {
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [subscription, setSubscription] = useState(null);
+  const [history, setHistory] = useState([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('Error fetching session:', error);
+        toast({
+          title: "Authentication Error",
+          description: "Please sign in to access your dashboard.",
+          variant: "destructive"
+        });
+      } else {
+        setSession(data.session);
+        if (data.session) {
+          fetchSubscriptionData(data.session.user.id);
+          fetchHistoryData(data.session.user.id);
+        }
+      }
+      setLoading(false);
+    };
+
+    fetchSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, currentSession) => {
+        setSession(currentSession);
+        if (currentSession) {
+          fetchSubscriptionData(currentSession.user.id);
+          fetchHistoryData(currentSession.user.id);
+        }
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      if (authListener && authListener.subscription) {
+        authListener.subscription.unsubscribe();
+      }
+    };
+  }, []);
+
+  const fetchSubscriptionData = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select(`
+          *,
+          plans:plan_id(*)
+        `)
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .maybeSingle();
+      
+      if (error) throw error;
+      
+      setSubscription(data || { plans: { name: 'Free', price: 0, handle_limit: 3, check_frequency: 'daily' } });
+    } catch (error) {
+      console.error('Error fetching subscription:', error);
+      toast({
+        title: "Subscription Data Error",
+        description: "There was a problem loading your subscription data.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const fetchHistoryData = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('handle_history')
+        .select(`
+          *,
+          handles:handle_id(name, platform)
+        `)
+        .order('checked_at', { ascending: false })
+        .limit(10);
+      
+      if (error) throw error;
+      
+      setHistory(data || []);
+    } catch (error) {
+      console.error('Error fetching history:', error);
+    }
+  };
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Sign Out Error",
+        description: "There was a problem signing you out.",
+        variant: "destructive"
+      });
+    } else {
+      navigate('/');
+    }
+  };
+
+  const handleSignIn = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`
+      }
+    });
+    
+    if (error) {
+      console.error('Error signing in:', error);
+      toast({
+        title: "Sign In Error",
+        description: "There was a problem signing you in.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <RefreshCw className="h-8 w-8 animate-spin text-brand-blue mx-auto mb-4" />
+            <p className="text-gray-600">Loading your dashboard...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -17,14 +168,238 @@ const Dashboard = () => {
               <p className="text-gray-600 mb-8">
                 Monitor and track your social media handles in one place. Get real-time notifications when your desired handles become available.
               </p>
-              <Button className="bg-brand-blue hover:bg-brand-purple text-white">
-                Upgrade to Pro
-              </Button>
+              
+              {!session ? (
+                <Button onClick={handleSignIn} className="bg-brand-blue hover:bg-brand-purple text-white">
+                  Sign In to Access Dashboard
+                </Button>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <div className="bg-white rounded-lg px-4 py-2 border border-gray-200 flex items-center">
+                    <div className="bg-brand-blue/10 rounded-full p-2 mr-3">
+                      <User className="w-5 h-5 text-brand-blue" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm text-gray-500">Signed in as</p>
+                      <p className="font-medium">{session.user.email}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white rounded-lg px-4 py-2 border border-gray-200 flex items-center">
+                    <div className="bg-brand-purple/10 rounded-full p-2 mr-3">
+                      <CreditCard className="w-5 h-5 text-brand-purple" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm text-gray-500">Current Plan</p>
+                      <p className="font-medium">{subscription?.plans?.name || 'Free'}</p>
+                    </div>
+                  </div>
+                  
+                  <Button variant="outline" className="border-gray-300" onClick={handleSignOut}>
+                    <LogOut className="w-4 h-4 mr-2" /> Sign Out
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
         
-        <DashboardDemo />
+        {session ? (
+          <div className="py-12">
+            <div className="container mx-auto px-4">
+              <div className="max-w-5xl mx-auto">
+                <Tabs defaultValue="handles" className="space-y-8">
+                  <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto">
+                    <TabsTrigger value="handles">My Handles</TabsTrigger>
+                    <TabsTrigger value="history">History</TabsTrigger>
+                    <TabsTrigger value="account">Account</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="handles" className="p-1">
+                    <DashboardDemo />
+                  </TabsContent>
+                  
+                  <TabsContent value="history" className="space-y-6">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                      <div className="border-b border-gray-200 p-4 bg-gray-50">
+                        <h3 className="font-semibold text-gray-800">Recent Handle Status Changes</h3>
+                      </div>
+                      
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Handle</TableHead>
+                              <TableHead>Platform</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Changed At</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {history.length > 0 ? (
+                              history.map((item) => (
+                                <TableRow key={item.id}>
+                                  <TableCell className="font-medium">@{item.handles?.name}</TableCell>
+                                  <TableCell>{item.handles?.platform}</TableCell>
+                                  <TableCell>
+                                    <span 
+                                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                        item.status === 'available' 
+                                          ? 'bg-green-100 text-green-800' 
+                                          : 'bg-red-100 text-red-800'
+                                      }`}
+                                    >
+                                      {item.status === 'available' ? 'Available' : 'Unavailable'}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell>
+                                    {new Date(item.checked_at).toLocaleString()}
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            ) : (
+                              <TableRow>
+                                <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                                  No history available yet. Status changes will appear here.
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                      <div className="flex items-start mb-4">
+                        <div className="rounded-full bg-amber-100 p-2 mr-4">
+                          <Bell className="h-5 w-5 text-amber-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-lg mb-1">Notification Settings</h3>
+                          <p className="text-gray-600 mb-4">Choose how you want to be notified when a handle becomes available.</p>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-center">
+                              <input id="email-notifications" type="checkbox" className="h-4 w-4 text-brand-blue border-gray-300 rounded" defaultChecked />
+                              <label htmlFor="email-notifications" className="ml-2 text-sm text-gray-700">Email Notifications</label>
+                            </div>
+                            <div className="flex items-center">
+                              <input id="browser-notifications" type="checkbox" className="h-4 w-4 text-brand-blue border-gray-300 rounded" defaultChecked />
+                              <label htmlFor="browser-notifications" className="ml-2 text-sm text-gray-700">Browser Notifications</label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="border-t border-gray-200 pt-4 mt-4 flex justify-end">
+                        <Button className="bg-brand-blue hover:bg-brand-purple text-white">
+                          Save Notification Settings
+                        </Button>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="account" className="space-y-6">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                      <div className="flex items-start mb-4">
+                        <div className="rounded-full bg-green-100 p-2 mr-4">
+                          <CreditCard className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg mb-1">Subscription Plan</h3>
+                          <p className="text-gray-600 mb-4">You are currently on the <strong>{subscription?.plans?.name || 'Free'}</strong> plan.</p>
+                          
+                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mb-4">
+                            <div className="flex justify-between mb-2">
+                              <span className="text-gray-600">Handle limit</span>
+                              <span className="font-medium">{subscription?.plans?.handle_limit || 3}</span>
+                            </div>
+                            <div className="flex justify-between mb-2">
+                              <span className="text-gray-600">Check frequency</span>
+                              <span className="font-medium">{subscription?.plans?.check_frequency || 'daily'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Price</span>
+                              <span className="font-medium">${subscription?.plans?.price || 0}/month</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="border-t border-gray-200 pt-4 mt-4">
+                        <h4 className="font-medium mb-4">Upgrade your plan for more features</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="border border-brand-blue rounded-lg p-4">
+                            <h3 className="font-semibold text-lg mb-2">Standard Plan</h3>
+                            <p className="text-gray-600 mb-4">Monitor up to 10 handles with hourly checks</p>
+                            <Button className="w-full bg-brand-blue hover:bg-brand-purple text-white">
+                              Upgrade to Standard - $5/month
+                            </Button>
+                          </div>
+                          <div className="border border-brand-purple rounded-lg p-4 bg-gradient-to-br from-brand-blue/5 to-brand-purple/5">
+                            <h3 className="font-semibold text-lg mb-2">Pro Plan</h3>
+                            <p className="text-gray-600 mb-4">Monitor up to 30 handles with real-time checks</p>
+                            <Button className="w-full bg-brand-purple hover:bg-brand-blue text-white">
+                              Upgrade to Pro - $12/month
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                      <div className="flex items-start mb-4">
+                        <div className="rounded-full bg-blue-100 p-2 mr-4">
+                          <Settings className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg mb-1">Account Settings</h3>
+                          <p className="text-gray-600 mb-4">Manage your account details and preferences.</p>
+                          
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                              <input 
+                                type="email" 
+                                value={session.user.email} 
+                                disabled 
+                                className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="border-t border-gray-200 pt-4 mt-4 flex justify-between">
+                        <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">
+                          Delete Account
+                        </Button>
+                        <Button onClick={handleSignOut} variant="outline">
+                          <LogOut className="w-4 h-4 mr-2" /> Sign Out
+                        </Button>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="py-12">
+            <div className="container mx-auto px-4 max-w-2xl">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 text-center">
+                <BarChart3 className="h-16 w-16 text-brand-blue mx-auto mb-4 opacity-50" />
+                <h2 className="text-2xl font-bold mb-4">Sign In to Access Your Dashboard</h2>
+                <p className="text-gray-600 mb-6">
+                  Monitor your social media handles, track availability, and get notified when your desired handles become available.
+                </p>
+                <Button onClick={handleSignIn} className="bg-brand-blue hover:bg-brand-purple text-white px-8 py-2">
+                  Sign In to Continue
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
         
         <div className="py-12 bg-gradient-to-r from-gray-50 to-brand-light">
           <div className="container mx-auto px-4 max-w-4xl">
