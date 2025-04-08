@@ -1,14 +1,26 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Bell, Menu, X } from 'lucide-react';
+import { Bell, Menu, X, User, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  const handleAuthButtonClick = () => {
+    navigate('/auth');
+    setIsMenuOpen(false);
   };
 
   return (
@@ -24,16 +36,44 @@ const Navbar = () => {
           <Link to="/" className="text-gray-700 hover:text-brand-blue transition-colors">Home</Link>
           <Link to="/features" className="text-gray-700 hover:text-brand-blue transition-colors">Features</Link>
           <Link to="/pricing" className="text-gray-700 hover:text-brand-blue transition-colors">Pricing</Link>
-          <Link to="/dashboard" className="text-gray-700 hover:text-brand-blue transition-colors">Dashboard</Link>
+          {user && (
+            <Link to="/dashboard" className="text-gray-700 hover:text-brand-blue transition-colors">Dashboard</Link>
+          )}
         </div>
 
         <div className="hidden md:flex items-center space-x-4">
-          <Button variant="outline" className="border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white transition-colors">
-            Login
-          </Button>
-          <Button className="bg-brand-blue hover:bg-brand-purple text-white transition-colors">
-            Get Started
-          </Button>
+          {user ? (
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <User className="h-4 w-4" />
+                <span className="hidden lg:inline">{user.email}</span>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={handleSignOut}
+                className="border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white transition-colors"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
+          ) : (
+            <>
+              <Button 
+                variant="outline" 
+                onClick={handleAuthButtonClick}
+                className="border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white transition-colors"
+              >
+                Login
+              </Button>
+              <Button 
+                onClick={handleAuthButtonClick}
+                className="bg-brand-blue hover:bg-brand-purple text-white transition-colors"
+              >
+                Get Started
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -49,14 +89,41 @@ const Navbar = () => {
             <Link to="/" className="text-gray-700 hover:text-brand-blue transition-colors py-2">Home</Link>
             <Link to="/features" className="text-gray-700 hover:text-brand-blue transition-colors py-2">Features</Link>
             <Link to="/pricing" className="text-gray-700 hover:text-brand-blue transition-colors py-2">Pricing</Link>
-            <Link to="/dashboard" className="text-gray-700 hover:text-brand-blue transition-colors py-2">Dashboard</Link>
+            {user && (
+              <Link to="/dashboard" className="text-gray-700 hover:text-brand-blue transition-colors py-2">Dashboard</Link>
+            )}
             <div className="flex flex-col space-y-2 pt-2 border-t">
-              <Button variant="outline" className="border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white w-full">
-                Login
-              </Button>
-              <Button className="bg-brand-blue hover:bg-brand-purple text-white w-full">
-                Get Started
-              </Button>
+              {user ? (
+                <>
+                  <div className="py-2 text-sm text-gray-600">
+                    Signed in as: {user.email}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleSignOut}
+                    className="border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white w-full"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleAuthButtonClick}
+                    className="border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white w-full"
+                  >
+                    Login
+                  </Button>
+                  <Button 
+                    onClick={handleAuthButtonClick}
+                    className="bg-brand-blue hover:bg-brand-purple text-white w-full"
+                  >
+                    Get Started
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

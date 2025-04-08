@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import DashboardDemo from '@/components/DashboardDemo';
@@ -20,51 +20,18 @@ import {
 } from 'lucide-react';
 
 const Dashboard = () => {
-  const [session, setSession] = useState(null);
+  const { user, signOut } = useAuth();
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState(null);
   const [history, setHistory] = useState([]);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Error fetching session:', error);
-        toast({
-          title: "Authentication Error",
-          description: "Please sign in to access your dashboard.",
-          variant: "destructive"
-        });
-      } else {
-        setSession(data.session);
-        if (data.session) {
-          fetchSubscriptionData(data.session.user.id);
-          fetchHistoryData(data.session.user.id);
-        }
-      }
-      setLoading(false);
-    };
-
-    fetchSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        setSession(currentSession);
-        if (currentSession) {
-          fetchSubscriptionData(currentSession.user.id);
-          fetchHistoryData(currentSession.user.id);
-        }
-        setLoading(false);
-      }
-    );
-
-    return () => {
-      if (authListener && authListener.subscription) {
-        authListener.subscription.unsubscribe();
-      }
-    };
-  }, []);
+    if (user) {
+      fetchSubscriptionData(user.id);
+      fetchHistoryData(user.id);
+    }
+    setLoading(false);
+  }, [user]);
 
   const fetchSubscriptionData = async (userId) => {
     try {
@@ -111,35 +78,7 @@ const Dashboard = () => {
   };
 
   const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error signing out:', error);
-      toast({
-        title: "Sign Out Error",
-        description: "There was a problem signing you out.",
-        variant: "destructive"
-      });
-    } else {
-      navigate('/');
-    }
-  };
-
-  const handleSignIn = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/dashboard`
-      }
-    });
-    
-    if (error) {
-      console.error('Error signing in:', error);
-      toast({
-        title: "Sign In Error",
-        description: "There was a problem signing you in.",
-        variant: "destructive"
-      });
-    }
+    await signOut();
   };
 
   if (loading) {
@@ -158,22 +97,18 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-grow pt-16">
-        <div className="bg-brand-light py-12">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto text-center">
-              <h1 className="text-3xl md:text-4xl font-bold mb-4">Your Handle Dashboard</h1>
-              <p className="text-gray-600 mb-8">
-                Monitor and track your social media handles in one place. Get real-time notifications when your desired handles become available.
-              </p>
-              
-              {!session ? (
-                <Button onClick={handleSignIn} className="bg-brand-blue hover:bg-brand-purple text-white">
-                  Sign In to Access Dashboard
-                </Button>
-              ) : (
+    <ProtectedRoute>
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow pt-16">
+          <div className="bg-brand-light py-12">
+            <div className="container mx-auto px-4">
+              <div className="max-w-4xl mx-auto text-center">
+                <h1 className="text-3xl md:text-4xl font-bold mb-4">Your Handle Dashboard</h1>
+                <p className="text-gray-600 mb-8">
+                  Monitor and track your social media handles in one place. Get real-time notifications when your desired handles become available.
+                </p>
+                
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                   <div className="bg-white rounded-lg px-4 py-2 border border-gray-200 flex items-center">
                     <div className="bg-brand-blue/10 rounded-full p-2 mr-3">
@@ -181,7 +116,7 @@ const Dashboard = () => {
                     </div>
                     <div className="text-left">
                       <p className="text-sm text-gray-500">Signed in as</p>
-                      <p className="font-medium">{session.user.email}</p>
+                      <p className="font-medium">{user?.email}</p>
                     </div>
                   </div>
                   
@@ -199,12 +134,10 @@ const Dashboard = () => {
                     <LogOut className="w-4 h-4 mr-2" /> Sign Out
                   </Button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
-        </div>
-        
-        {session ? (
+          
           <div className="py-12">
             <div className="container mx-auto px-4">
               <div className="max-w-5xl mx-auto">
@@ -361,7 +294,7 @@ const Dashboard = () => {
                               <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
                               <input 
                                 type="email" 
-                                value={session.user.email} 
+                                value={user?.email} 
                                 disabled 
                                 className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50"
                               />
@@ -384,52 +317,37 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
-        ) : (
-          <div className="py-12">
-            <div className="container mx-auto px-4 max-w-2xl">
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 text-center">
-                <BarChart3 className="h-16 w-16 text-brand-blue mx-auto mb-4 opacity-50" />
-                <h2 className="text-2xl font-bold mb-4">Sign In to Access Your Dashboard</h2>
+          
+          <div className="py-12 bg-gradient-to-r from-gray-50 to-brand-light">
+            <div className="container mx-auto px-4 max-w-4xl">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
+                <h2 className="text-2xl font-bold mb-4">Want more monitoring power?</h2>
                 <p className="text-gray-600 mb-6">
-                  Monitor your social media handles, track availability, and get notified when your desired handles become available.
+                  Upgrade to our Standard or Pro plan to monitor more handles, get faster checks, and access premium features.
                 </p>
-                <Button onClick={handleSignIn} className="bg-brand-blue hover:bg-brand-purple text-white px-8 py-2">
-                  Sign In to Continue
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        <div className="py-12 bg-gradient-to-r from-gray-50 to-brand-light">
-          <div className="container mx-auto px-4 max-w-4xl">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
-              <h2 className="text-2xl font-bold mb-4">Want more monitoring power?</h2>
-              <p className="text-gray-600 mb-6">
-                Upgrade to our Standard or Pro plan to monitor more handles, get faster checks, and access premium features.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="border border-brand-blue rounded-lg p-4">
-                  <h3 className="font-semibold text-lg mb-2">Standard Plan</h3>
-                  <p className="text-gray-600 mb-4">Monitor up to 10 handles with hourly checks</p>
-                  <Button className="w-full bg-brand-blue hover:bg-brand-purple text-white">
-                    Upgrade to Standard - $5/month
-                  </Button>
-                </div>
-                <div className="border border-brand-purple rounded-lg p-4 bg-gradient-to-br from-brand-blue/5 to-brand-purple/5">
-                  <h3 className="font-semibold text-lg mb-2">Pro Plan</h3>
-                  <p className="text-gray-600 mb-4">Monitor up to 30 handles with real-time checks</p>
-                  <Button className="w-full bg-brand-purple hover:bg-brand-blue text-white">
-                    Upgrade to Pro - $12/month
-                  </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="border border-brand-blue rounded-lg p-4">
+                    <h3 className="font-semibold text-lg mb-2">Standard Plan</h3>
+                    <p className="text-gray-600 mb-4">Monitor up to 10 handles with hourly checks</p>
+                    <Button className="w-full bg-brand-blue hover:bg-brand-purple text-white">
+                      Upgrade to Standard - $5/month
+                    </Button>
+                  </div>
+                  <div className="border border-brand-purple rounded-lg p-4 bg-gradient-to-br from-brand-blue/5 to-brand-purple/5">
+                    <h3 className="font-semibold text-lg mb-2">Pro Plan</h3>
+                    <p className="text-gray-600 mb-4">Monitor up to 30 handles with real-time checks</p>
+                    <Button className="w-full bg-brand-purple hover:bg-brand-blue text-white">
+                      Upgrade to Pro - $12/month
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </main>
-      <Footer />
-    </div>
+        </main>
+        <Footer />
+      </div>
+    </ProtectedRoute>
   );
 };
 

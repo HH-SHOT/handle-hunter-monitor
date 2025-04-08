@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -119,29 +120,25 @@ const DashboardDemo = () => {
   const [handles, setHandles] = useState<Handle[]>(mockHandles);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user } = useAuth();
   const [newHandle, setNewHandle] = useState({
     name: '',
-    platform: 'twitter' as const
+    platform: 'twitter' as 'twitter' | 'instagram' | 'facebook' | 'tiktok'
   });
   const [showAddForm, setShowAddForm] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      setIsAuthenticated(!!data.session);
-      
-      if (data.session) {
-        fetchHandles();
-      }
-    };
-    
-    checkAuth();
-  }, []);
+    if (user) {
+      fetchHandles();
+    }
+  }, [user]);
 
   const fetchHandles = async () => {
+    if (!user) return;
+    
     setIsLoading(true);
     try {
+      // Type-safe table name
       const { data, error } = await supabase
         .from('handles')
         .select('*')
@@ -150,11 +147,11 @@ const DashboardDemo = () => {
       if (error) throw error;
       
       if (data) {
-        const formattedHandles = data.map(h => ({
+        const formattedHandles: Handle[] = data.map(h => ({
           id: h.id,
           name: h.name,
-          platform: h.platform,
-          status: h.status,
+          platform: h.platform as 'twitter' | 'instagram' | 'facebook' | 'tiktok',
+          status: h.status as 'available' | 'unavailable' | 'monitoring',
           lastChecked: formatTimeAgo(h.last_checked),
           notifications: h.notifications_enabled
         }));
@@ -193,6 +190,15 @@ const DashboardDemo = () => {
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to add handles",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (!newHandle.name.trim()) {
       toast({
         title: "Handle name required",
@@ -214,7 +220,8 @@ const DashboardDemo = () => {
           platform: newHandle.platform,
           status: 'monitoring',
           last_checked: new Date().toISOString(),
-          notifications_enabled: true
+          notifications_enabled: true,
+          user_id: user.id
         })
         .select();
       
@@ -226,7 +233,7 @@ const DashboardDemo = () => {
       });
       
       if (data && data[0]) {
-        const newHandleObj = {
+        const newHandleObj: Handle = {
           id: data[0].id,
           name: normalizedName,
           platform: newHandle.platform,
@@ -238,7 +245,11 @@ const DashboardDemo = () => {
         setHandles(prev => [newHandleObj, ...prev]);
       }
       
-      setNewHandle({ name: '', platform: 'twitter' });
+      setNewHandle({ 
+        name: '', 
+        platform: 'twitter' 
+      });
+      
       setShowAddForm(false);
     } catch (error: any) {
       console.error('Error adding handle:', error);
@@ -253,6 +264,8 @@ const DashboardDemo = () => {
   };
 
   const toggleNotifications = async (id: string, currentStatus: boolean) => {
+    if (!user) return;
+    
     try {
       const { error } = await supabase
         .from('handles')
@@ -284,6 +297,8 @@ const DashboardDemo = () => {
   };
 
   const refreshHandles = async () => {
+    if (!user) return;
+    
     setIsLoading(true);
     try {
       const { error } = await supabase.functions.invoke('check-handles', {
@@ -313,6 +328,8 @@ const DashboardDemo = () => {
   };
 
   const deleteHandle = async (id: string) => {
+    if (!user) return;
+    
     try {
       const { error } = await supabase
         .from('handles')
@@ -361,7 +378,7 @@ const DashboardDemo = () => {
                 variant="outline" 
                 className="text-sm"
                 onClick={refreshHandles}
-                disabled={isLoading || !isAuthenticated}
+                disabled={isLoading || !user}
               >
                 <RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
@@ -370,7 +387,7 @@ const DashboardDemo = () => {
                 size="sm" 
                 className="bg-brand-blue hover:bg-brand-purple text-white text-sm"
                 onClick={() => setShowAddForm(!showAddForm)}
-                disabled={!isAuthenticated}
+                disabled={!user}
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Add Handle
@@ -393,7 +410,10 @@ const DashboardDemo = () => {
                 <div className="sm:w-1/4">
                   <select 
                     value={newHandle.platform}
-                    onChange={(e) => setNewHandle(prev => ({ ...prev, platform: e.target.value as 'twitter' | 'instagram' | 'facebook' | 'tiktok' }))}
+                    onChange={(e) => setNewHandle(prev => ({ 
+                      ...prev, 
+                      platform: e.target.value as 'twitter' | 'instagram' | 'facebook' | 'tiktok' 
+                    }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue"
                   >
                     <option value="twitter">Twitter</option>
@@ -494,7 +514,7 @@ const DashboardDemo = () => {
             ) : (
               <div className="p-8 text-center">
                 <div className="text-gray-500 mb-4">No handles found</div>
-                {!isAuthenticated ? (
+                {!user ? (
                   <div className="text-sm text-gray-400">
                     Sign in to start monitoring handles
                   </div>
@@ -518,10 +538,10 @@ const DashboardDemo = () => {
           
           <div className="bg-gray-50 p-4 text-center border-t border-gray-200">
             <p className="text-sm text-gray-600">
-              {isAuthenticated ? (
+              {user ? (
                 <>Showing {filteredHandles.length} of {handles.length} handles. <a href="/dashboard" className="text-brand-blue hover:underline">View all in dashboard</a></>
               ) : (
-                <a href="/dashboard" className="text-brand-blue hover:underline">Sign in to start monitoring handles</a>
+                <a href="/auth" className="text-brand-blue hover:underline">Sign in to start monitoring handles</a>
               )}
             </p>
           </div>
