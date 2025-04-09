@@ -18,7 +18,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, HandleType } from '@/integrations/supabase/client';
 
 interface Handle {
   id: string;
@@ -116,7 +116,7 @@ const getStatusComponent = (status: string) => {
 };
 
 const DashboardDemo = () => {
-  const [handles, setHandles] = useState<Handle[]>(mockHandles);
+  const [handles, setHandles] = useState<Handle[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
@@ -151,7 +151,7 @@ const DashboardDemo = () => {
           platform: h.platform as 'twitter' | 'instagram' | 'facebook' | 'tiktok',
           status: h.status as 'available' | 'unavailable' | 'monitoring',
           lastChecked: formatTimeAgo(h.last_checked),
-          notifications: h.notifications_enabled
+          notifications: h.notifications_enabled || false
         }));
         setHandles(formattedHandles);
       }
@@ -298,20 +298,18 @@ const DashboardDemo = () => {
     
     setIsLoading(true);
     try {
-      const { error } = await supabase.functions.invoke('check-handles', {
+      const { error, data } = await supabase.functions.invoke('check-handles', {
         body: { refresh: true }
       });
       
       if (error) throw error;
       
       toast({
-        title: "Refresh initiated",
-        description: "Your handles are being checked for availability. This may take a moment.",
+        title: "Handles refreshed",
+        description: "Your handles have been checked for availability.",
       });
       
-      setTimeout(() => {
-        fetchHandles();
-      }, 2000);
+      await fetchHandles();
     } catch (error: any) {
       console.error('Error refreshing handles:', error);
       toast({
@@ -319,7 +317,42 @@ const DashboardDemo = () => {
         description: error.message || "There was a problem checking your handles.",
         variant: "destructive"
       });
+    } finally {
       setIsLoading(false);
+    }
+  };
+
+  const checkSingleHandle = async (id: string) => {
+    if (!user) return;
+    
+    try {
+      const handle = handles.find(h => h.id === id);
+      if (!handle) return;
+      
+      toast({
+        title: "Checking handle",
+        description: `Checking availability of @${handle.name}...`,
+      });
+      
+      const { error, data } = await supabase.functions.invoke('check-handles', {
+        body: { handleId: id }
+      });
+      
+      if (error) throw error;
+      
+      await fetchHandles();
+      
+      toast({
+        title: "Handle checked",
+        description: `@${handle.name} is ${data.handle.status}.`,
+      });
+    } catch (error: any) {
+      console.error('Error checking handle:', error);
+      toast({
+        title: "Error checking handle",
+        description: error.message || "There was a problem checking this handle.",
+        variant: "destructive"
+      });
     }
   };
 

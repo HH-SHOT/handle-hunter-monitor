@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { toast } from "@/hooks/use-toast";
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SubscriptionType, PlanType, HistoryType } from '@/integrations/supabase/client';
+import { upgradeToPlan } from "@/utils/planUtils";
 import {
   User,
   LogOut,
@@ -51,7 +52,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (user) {
       fetchSubscriptionData(user.id);
-      fetchHistoryData(user.id);
+      fetchHistoryData();
     }
     setLoading(false);
   }, [user]);
@@ -92,7 +93,7 @@ const Dashboard = () => {
     }
   };
 
-  const fetchHistoryData = async (userId: string) => {
+  const fetchHistoryData = async () => {
     try {
       const { data, error } = await supabase
         .from('handle_history')
@@ -113,6 +114,16 @@ const Dashboard = () => {
 
   const handleSignOut = async () => {
     await signOut();
+  };
+
+  const handleUpgrade = async (planName: 'Standard' | 'Pro') => {
+    if (!user) return;
+    
+    const success = await upgradeToPlan(user.id, planName);
+    
+    if (success && user) {
+      fetchSubscriptionData(user.id);
+    }
   };
 
   if (loading) {
@@ -299,14 +310,20 @@ const Dashboard = () => {
                           <div className="border border-brand-blue rounded-lg p-4">
                             <h3 className="font-semibold text-lg mb-2">Standard Plan</h3>
                             <p className="text-gray-600 mb-4">Monitor up to 10 handles with hourly checks</p>
-                            <Button className="w-full bg-brand-blue hover:bg-brand-purple text-white">
+                            <Button 
+                              className="w-full bg-brand-blue hover:bg-brand-purple text-white"
+                              onClick={() => handleUpgrade('Standard')}
+                            >
                               Upgrade to Standard - $5/month
                             </Button>
                           </div>
                           <div className="border border-brand-purple rounded-lg p-4 bg-gradient-to-br from-brand-blue/5 to-brand-purple/5">
                             <h3 className="font-semibold text-lg mb-2">Pro Plan</h3>
                             <p className="text-gray-600 mb-4">Monitor up to 30 handles with real-time checks</p>
-                            <Button className="w-full bg-brand-purple hover:bg-brand-blue text-white">
+                            <Button 
+                              className="w-full bg-brand-purple hover:bg-brand-blue text-white"
+                              onClick={() => handleUpgrade('Pro')}
+                            >
                               Upgrade to Pro - $12/month
                             </Button>
                           </div>
@@ -363,14 +380,20 @@ const Dashboard = () => {
                   <div className="border border-brand-blue rounded-lg p-4">
                     <h3 className="font-semibold text-lg mb-2">Standard Plan</h3>
                     <p className="text-gray-600 mb-4">Monitor up to 10 handles with hourly checks</p>
-                    <Button className="w-full bg-brand-blue hover:bg-brand-purple text-white">
+                    <Button 
+                      className="w-full bg-brand-blue hover:bg-brand-purple text-white"
+                      onClick={() => handleUpgrade('Standard')}
+                    >
                       Upgrade to Standard - $5/month
                     </Button>
                   </div>
                   <div className="border border-brand-purple rounded-lg p-4 bg-gradient-to-br from-brand-blue/5 to-brand-purple/5">
                     <h3 className="font-semibold text-lg mb-2">Pro Plan</h3>
                     <p className="text-gray-600 mb-4">Monitor up to 30 handles with real-time checks</p>
-                    <Button className="w-full bg-brand-purple hover:bg-brand-blue text-white">
+                    <Button 
+                      className="w-full bg-brand-purple hover:bg-brand-blue text-white"
+                      onClick={() => handleUpgrade('Pro')}
+                    >
                       Upgrade to Pro - $12/month
                     </Button>
                   </div>

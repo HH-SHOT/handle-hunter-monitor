@@ -16,3 +16,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   }
 });
+
+export type HandleType = Database['public']['Tables']['handles']['Row'];
+export type HistoryType = Database['public']['Tables']['handle_history']['Row'];
+export type PlanType = Database['public']['Tables']['plans']['Row'];
+export type SubscriptionType = Database['public']['Tables']['subscriptions']['Row'];
