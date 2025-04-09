@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -138,7 +137,6 @@ const DashboardDemo = () => {
     
     setIsLoading(true);
     try {
-      // Type-safe table name
       const { data, error } = await supabase
         .from('handles')
         .select('*')
@@ -210,7 +208,6 @@ const DashboardDemo = () => {
     
     setIsLoading(true);
     try {
-      // Normalize handle name (remove @ if present)
       const normalizedName = newHandle.name.replace(/^@/, '');
       
       const { data, error } = await supabase
@@ -312,7 +309,6 @@ const DashboardDemo = () => {
         description: "Your handles are being checked for availability. This may take a moment.",
       });
       
-      // Wait a moment then refresh the data
       setTimeout(() => {
         fetchHandles();
       }, 2000);

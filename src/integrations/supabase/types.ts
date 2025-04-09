@@ -9,7 +9,130 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      handle_history: {
+        Row: {
+          checked_at: string
+          handle_id: string
+          id: string
+          status: string
+        }
+        Insert: {
+          checked_at?: string
+          handle_id: string
+          id?: string
+          status: string
+        }
+        Update: {
+          checked_at?: string
+          handle_id?: string
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "handle_history_handle_id_fkey"
+            columns: ["handle_id"]
+            isOneToOne: false
+            referencedRelation: "handles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      handles: {
+        Row: {
+          created_at: string
+          id: string
+          last_checked: string | null
+          name: string
+          notifications_enabled: boolean | null
+          platform: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_checked?: string | null
+          name: string
+          notifications_enabled?: boolean | null
+          platform: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_checked?: string | null
+          name?: string
+          notifications_enabled?: boolean | null
+          platform?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      plans: {
+        Row: {
+          check_frequency: string
+          created_at: string
+          handle_limit: number
+          id: string
+          name: string
+          price: number
+        }
+        Insert: {
+          check_frequency?: string
+          created_at?: string
+          handle_limit?: number
+          id?: string
+          name: string
+          price: number
+        }
+        Update: {
+          check_frequency?: string
+          created_at?: string
+          handle_limit?: number
+          id?: string
+          name?: string
+          price?: number
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          plan_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

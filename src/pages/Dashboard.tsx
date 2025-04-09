@@ -19,11 +19,34 @@ import {
   RefreshCw
 } from 'lucide-react';
 
+interface SubscriptionWithPlan {
+  id: string;
+  status: string;
+  expires_at: string | null;
+  plans: {
+    id: string;
+    name: string;
+    price: number;
+    handle_limit: number;
+    check_frequency: string;
+  }
+}
+
+interface HistoryItem {
+  id: string;
+  checked_at: string;
+  status: string;
+  handles: {
+    name: string;
+    platform: string;
+  }
+}
+
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [subscription, setSubscription] = useState(null);
-  const [history, setHistory] = useState([]);
+  const [subscription, setSubscription] = useState<SubscriptionWithPlan | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -33,7 +56,7 @@ const Dashboard = () => {
     setLoading(false);
   }, [user]);
 
-  const fetchSubscriptionData = async (userId) => {
+  const fetchSubscriptionData = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('subscriptions')
@@ -47,7 +70,18 @@ const Dashboard = () => {
       
       if (error) throw error;
       
-      setSubscription(data || { plans: { name: 'Free', price: 0, handle_limit: 3, check_frequency: 'daily' } });
+      setSubscription(data || { 
+        id: '', 
+        status: 'active', 
+        expires_at: null, 
+        plans: { 
+          id: '', 
+          name: 'Free', 
+          price: 0, 
+          handle_limit: 3, 
+          check_frequency: 'daily' 
+        } 
+      });
     } catch (error) {
       console.error('Error fetching subscription:', error);
       toast({
@@ -58,7 +92,7 @@ const Dashboard = () => {
     }
   };
 
-  const fetchHistoryData = async (userId) => {
+  const fetchHistoryData = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('handle_history')
