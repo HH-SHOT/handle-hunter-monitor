@@ -60,7 +60,105 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { refresh, handleId } = await req.json();
+    const { refresh, handleId, scheduled } = await req.json();
+    
+    // Handle scheduled checks (runs every 5 minutes)
+    if (scheduled) {
+      console.log("Running scheduled handle checks (every 5 minutes)");
+      
+      // Get all handles to check
+      const { data: handles, error: fetchError } = await supabaseClient
+        .from('handles')
+        .select('*');
+        
+      if (fetchError) {
+        throw fetchError;
+      }
+      
+      if (!handles || handles.length === 0) {
+        return new Response(
+          JSON.stringify({ success: true, message: "No handles to check" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      console.log(`Found ${handles.length} handles to check`);
+      
+      const results = [];
+      const availableHandles = [];
+      
+      for (const handle of handles) {
+        try {
+          const newStatus = await checkHandleAvailability(handle.name, handle.platform);
+          const lastChecked = new Date().toISOString();
+          
+          // Update handle status
+          const { error: updateError } = await supabaseClient
+            .from('handles')
+            .update({ 
+              status: newStatus, 
+              last_checked: lastChecked 
+            })
+            .eq('id', handle.id);
+            
+          if (updateError) {
+            console.error(`Error updating handle ${handle.name}:`, updateError);
+            continue;
+          }
+          
+          // Only create history record if status changed
+          if (handle.status !== newStatus) {
+            const { error: historyError } = await supabaseClient
+              .from('handle_history')
+              .insert({
+                handle_id: handle.id,
+                status: newStatus,
+              });
+              
+            if (historyError) {
+              console.error(`Error creating history for ${handle.name}:`, historyError);
+            }
+            
+            // If handle became available, add to notification list
+            if (newStatus === 'available' && handle.notifications_enabled) {
+              availableHandles.push({
+                name: handle.name,
+                platform: handle.platform,
+                userId: handle.user_id
+              });
+            }
+          }
+          
+          results.push({
+            id: handle.id,
+            name: handle.name,
+            platform: handle.platform,
+            status: newStatus,
+            changed: handle.status !== newStatus
+          });
+          
+          console.log(`Updated handle ${handle.name} to ${newStatus}`);
+        } catch (error) {
+          console.error(`Error processing handle ${handle.name}:`, error);
+        }
+      }
+      
+      // Here you would implement notification sending for any newly available handles
+      if (availableHandles.length > 0) {
+        console.log("Handles now available:", availableHandles);
+        // TODO: Implement notification system (email, push, etc.)
+      }
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "Scheduled check completed successfully",
+          results: results,
+          availableHandles: availableHandles
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     
     // If checking a single handle
     if (handleId) {
@@ -128,9 +226,9 @@ serve(async (req) => {
       );
     }
     
-    // If refreshing all handles
+    // If refreshing all handles manually
     if (refresh) {
-      console.log("Refreshing all handle availability statuses...");
+      console.log("Manually refreshing all handle availability statuses...");
       
       // Get all handles to check
       const { data: handles, error: fetchError } = await supabaseClient

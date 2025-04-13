@@ -1,9 +1,9 @@
 
-# project_id is already set here; don't edit!
 project_id = "mausvzbzorurkcoruhev"
 
 [api]
 enabled = true
+# Port the API will listen on
 port = 54321
 schemas = ["public", "storage", "graphql_public"]
 extra_search_path = ["public", "extensions"]
@@ -14,29 +14,54 @@ port = 54322
 shadow_port = 54320
 major_version = 15
 
-[realtime]
-enabled = true
-
 [studio]
 enabled = true
 port = 54323
 api_url = "http://localhost"
 
+[inbucket]
+enabled = true
+port = 54324
+
 [storage]
 enabled = true
+file_size_limit = "50MiB"
 
 [auth]
 enabled = true
-site_url = "http://localhost:5173"
-additional_redirect_urls = ["https://localhost:5173"]
-jwt_expiry = 3600
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 604800
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
+enable_signup = true
 
-[functions]
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
 
-[inbucket]
+[auth.sms]
+enable_signup = true
+enable_confirmations = true
+
+[auth.external.github]
 enabled = true
+client_id = "env(SUPABASE_AUTH_GITHUB_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_GITHUB_SECRET)"
+redirect_uri = "http://localhost:54321/auth/v1/callback"
 
-[vector]
-enabled = true
+[analytics]
+enabled = false
+port = 54327
+vector_port = 54328
+backend = "postgres"
+
+[experimental]
+orioledb_version = "alpha"
+
+[functions.check-handles]
+verify_jwt = false
+
+[functions.handle-scheduler]
+verify_jwt = false

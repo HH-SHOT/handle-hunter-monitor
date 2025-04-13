@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,8 @@ import {
   Twitter,
   Instagram,
   Facebook,
-  TrendingUp
+  TrendingUp,
+  Calendar
 } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
 import { supabase, HandleType } from '@/integrations/supabase/client';
@@ -129,8 +131,27 @@ const DashboardDemo = () => {
   useEffect(() => {
     if (user) {
       fetchHandles();
+      
+      // Check scheduler status
+      checkSchedulerStatus();
     }
   }, [user]);
+
+  const checkSchedulerStatus = async () => {
+    try {
+      const { error } = await supabase.functions.invoke('handle-scheduler', {
+        body: {}
+      });
+      
+      if (error) {
+        console.error('Error checking scheduler status:', error);
+      } else {
+        console.log('Scheduler is active, handles will be checked every 5 minutes');
+      }
+    } catch (err) {
+      console.error('Failed to check scheduler status:', err);
+    }
+  };
 
   const fetchHandles = async () => {
     if (!user) return;
@@ -298,6 +319,11 @@ const DashboardDemo = () => {
     
     setIsLoading(true);
     try {
+      toast({
+        title: "Checking handles",
+        description: "Checking availability for all handles. This may take a moment...",
+      });
+      
       const { error, data } = await supabase.functions.invoke('check-handles', {
         body: { refresh: true }
       });
@@ -310,6 +336,16 @@ const DashboardDemo = () => {
       });
       
       await fetchHandles();
+      
+      // If there are available handles, show a special toast
+      const availableHandles = data?.results?.filter(h => h.status === 'available') || [];
+      if (availableHandles.length > 0) {
+        toast({
+          title: "Available Handles Found!",
+          description: `${availableHandles.length} handle(s) are now available!`,
+          variant: "success"
+        });
+      }
     } catch (error: any) {
       console.error('Error refreshing handles:', error);
       toast({
@@ -396,6 +432,10 @@ const DashboardDemo = () => {
           <p className="text-gray-600 max-w-2xl mx-auto">
             Track the availability of your desired social media handles across platforms. Get notified when they become available.
           </p>
+          <div className="flex items-center justify-center mt-2">
+            <Calendar className="h-4 w-4 mr-1 text-brand-blue" />
+            <span className="text-sm text-brand-blue">Automatic checks every 5 minutes</span>
+          </div>
         </div>
         
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden max-w-4xl mx-auto">
@@ -497,7 +537,7 @@ const DashboardDemo = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredHandles.map((handle) => (
-                    <tr key={handle.id} className="hover:bg-gray-50">
+                    <tr key={handle.id} className={`hover:bg-gray-50 ${handle.status === 'available' ? 'bg-green-50' : ''}`}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center mr-3">
@@ -505,6 +545,7 @@ const DashboardDemo = () => {
                           </div>
                           <div>
                             <div className="text-sm font-medium text-gray-900">@{handle.name}</div>
+                            <div className="text-xs text-gray-500">{handle.platform}</div>
                           </div>
                         </div>
                       </td>
@@ -522,7 +563,17 @@ const DashboardDemo = () => {
                             size="sm" 
                             variant="ghost" 
                             className="h-8 w-8 p-0"
+                            onClick={() => checkSingleHandle(handle.id)}
+                            title="Check now"
+                          >
+                            <RefreshCw className="h-4 w-4 text-gray-400 hover:text-brand-blue" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-8 w-8 p-0"
                             onClick={() => toggleNotifications(handle.id, handle.notifications)}
+                            title={handle.notifications ? "Notifications on" : "Notifications off"}
                           >
                             <Bell className={`h-4 w-4 ${handle.notifications ? 'text-brand-blue' : 'text-gray-400'}`} />
                           </Button>
@@ -531,6 +582,7 @@ const DashboardDemo = () => {
                             variant="ghost" 
                             className="h-8 w-8 p-0"
                             onClick={() => deleteHandle(handle.id)}
+                            title="Delete handle"
                           >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
