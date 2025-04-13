@@ -343,7 +343,7 @@ const DashboardDemo = () => {
         toast({
           title: "Available Handles Found!",
           description: `${availableHandles.length} handle(s) are now available!`,
-          variant: "success"
+          variant: "default"
         });
       }
     } catch (error: any) {
