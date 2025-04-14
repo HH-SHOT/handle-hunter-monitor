@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -11,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase, SubscriptionType, PlanType, HistoryType } from '@/integrations/supabase/client';
 import NotificationPreferences from '@/components/NotificationPreferences';
 import SubscriptionTier from '@/components/SubscriptionTier';
+import { upgradeToPlan } from '@/utils/planUtils';
 import {
   User,
   LogOut,

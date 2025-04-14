@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { 
   Bell, 
   Plus,
@@ -17,8 +17,18 @@ import {
   Instagram,
   Facebook,
   TrendingUp,
-  Calendar
+  Calendar,
+  Edit,
+  Trash2,
+  XCircle,
+  CircleCheck
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
 import { supabase, HandleType } from '@/integrations/supabase/client';
 
@@ -101,7 +111,7 @@ const getStatusComponent = (status: string) => {
     case 'unavailable':
       return (
         <div className="flex items-center text-red-600">
-          <AlertCircle className="h-4 w-4 mr-1" />
+          <XCircle className="h-4 w-4 mr-1" />
           <span>Unavailable</span>
         </div>
       );
@@ -127,6 +137,10 @@ const DashboardDemo = () => {
     platform: 'twitter' as 'twitter' | 'instagram' | 'facebook' | 'tiktok'
   });
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingHandle, setEditingHandle] = useState<Handle | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [handleToDelete, setHandleToDelete] = useState<Handle | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -392,23 +406,86 @@ const DashboardDemo = () => {
     }
   };
 
-  const deleteHandle = async (id: string) => {
-    if (!user) return;
+  const openEditDialog = (handle: Handle) => {
+    setEditingHandle(handle);
+    setShowEditDialog(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
+    if (!user || !editingHandle) return;
+    
+    setIsLoading(true);
     try {
+      const normalizedName = editingHandle.name.replace(/^@/, '');
+      
       const { error } = await supabase
         .from('handles')
-        .delete()
-        .eq('id', id);
+        .update({
+          name: normalizedName,
+          platform: editingHandle.platform,
+          notifications_enabled: editingHandle.notifications,
+        })
+        .eq('id', editingHandle.id);
       
       if (error) throw error;
       
-      setHandles(prev => prev.filter(handle => handle.id !== id));
+      toast({
+        title: "Handle updated successfully",
+        description: `Updated @${normalizedName} on ${editingHandle.platform}`,
+      });
+      
+      await fetchHandles();
+      setShowEditDialog(false);
+    } catch (error: any) {
+      console.error('Error updating handle:', error);
+      toast({
+        title: "Error updating handle",
+        description: error.message || "There was a problem updating your handle.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const confirmDeleteHandle = (handle: Handle) => {
+    setHandleToDelete(handle);
+    setShowDeleteDialog(true);
+  };
+
+  const deleteHandle = async () => {
+    if (!user || !handleToDelete) return;
+    
+    try {
+      // First delete associated history records
+      const { error: historyError } = await supabase
+        .from('handle_history')
+        .delete()
+        .eq('handle_id', handleToDelete.id);
+      
+      if (historyError) {
+        console.error('Error deleting handle history:', historyError);
+      }
+      
+      // Then delete the handle
+      const { error } = await supabase
+        .from('handles')
+        .delete()
+        .eq('id', handleToDelete.id);
+      
+      if (error) throw error;
+      
+      setHandles(prev => prev.filter(handle => handle.id !== handleToDelete.id));
       
       toast({
         title: "Handle removed",
         description: "The handle has been removed from monitoring.",
       });
+      
+      setShowDeleteDialog(false);
+      setHandleToDelete(null);
     } catch (error: any) {
       console.error('Error deleting handle:', error);
       toast({
@@ -577,15 +654,30 @@ const DashboardDemo = () => {
                           >
                             <Bell className={`h-4 w-4 ${handle.notifications ? 'text-brand-blue' : 'text-gray-400'}`} />
                           </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="h-8 w-8 p-0"
-                            onClick={() => deleteHandle(handle.id)}
-                            title="Delete handle"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="h-8 w-8 p-0"
+                              >
+                                <MoreVertical className="h-4 w-4 text-gray-400" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openEditDialog(handle)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-red-600" 
+                                onClick={() => confirmDeleteHandle(handle)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </td>
                     </tr>
@@ -628,6 +720,84 @@ const DashboardDemo = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Handle Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Handle</DialogTitle>
+          </DialogHeader>
+          {editingHandle && (
+            <form onSubmit={handleEditSubmit}>
+              <div className="space-y-4 py-4">
+                <div className="grid gap-2">
+                  <label htmlFor="edit-name" className="text-sm font-medium">Handle Name</label>
+                  <Input
+                    id="edit-name"
+                    value={editingHandle.name}
+                    onChange={(e) => setEditingHandle({...editingHandle, name: e.target.value})}
+                    placeholder="Handle name"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label htmlFor="edit-platform" className="text-sm font-medium">Platform</label>
+                  <select 
+                    id="edit-platform"
+                    value={editingHandle.platform}
+                    onChange={(e) => setEditingHandle({
+                      ...editingHandle, 
+                      platform: e.target.value as 'twitter' | 'instagram' | 'facebook' | 'tiktok'
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                  >
+                    <option value="twitter">Twitter</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="facebook">Facebook</option>
+                    <option value="tiktok">TikTok</option>
+                  </select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="edit-notifications"
+                    checked={editingHandle.notifications}
+                    onChange={(e) => setEditingHandle({...editingHandle, notifications: e.target.checked})}
+                    className="h-4 w-4 text-brand-blue focus:ring-brand-blue border-gray-300 rounded"
+                  />
+                  <label htmlFor="edit-notifications" className="text-sm font-medium">Enable Notifications</label>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowEditDialog(false)} type="button">Cancel</Button>
+                <Button type="submit" className="bg-brand-blue text-white">Save Changes</Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Handle</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>Are you sure you want to delete {handleToDelete && `@${handleToDelete.name}`}?</p>
+            <p className="text-sm text-gray-500 mt-2">This will remove the handle from monitoring and delete all associated history. This action cannot be undone.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
+            <Button 
+              variant="destructive" 
+              onClick={deleteHandle}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };
