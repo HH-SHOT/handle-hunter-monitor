@@ -9,7 +9,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { toast } from "@/hooks/use-toast";
 import { supabase, SubscriptionType, PlanType, HistoryType } from '@/integrations/supabase/client';
-import { upgradeToPlan } from "@/utils/planUtils";
+import NotificationPreferences from '@/components/NotificationPreferences';
+import SubscriptionTier from '@/components/SubscriptionTier';
 import {
   User,
   LogOut,
@@ -247,89 +248,31 @@ const Dashboard = () => {
                       </div>
                     </div>
                     
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                      <div className="flex items-start mb-4">
-                        <div className="rounded-full bg-amber-100 p-2 mr-4">
-                          <Bell className="h-5 w-5 text-amber-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-lg mb-1">Notification Settings</h3>
-                          <p className="text-gray-600 mb-4">Choose how you want to be notified when a handle becomes available.</p>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="flex items-center">
-                              <input id="email-notifications" type="checkbox" className="h-4 w-4 text-brand-blue border-gray-300 rounded" defaultChecked />
-                              <label htmlFor="email-notifications" className="ml-2 text-sm text-gray-700">Email Notifications</label>
-                            </div>
-                            <div className="flex items-center">
-                              <input id="browser-notifications" type="checkbox" className="h-4 w-4 text-brand-blue border-gray-300 rounded" defaultChecked />
-                              <label htmlFor="browser-notifications" className="ml-2 text-sm text-gray-700">Browser Notifications</label>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="border-t border-gray-200 pt-4 mt-4 flex justify-end">
-                        <Button className="bg-brand-blue hover:bg-brand-purple text-white">
-                          Save Notification Settings
-                        </Button>
-                      </div>
-                    </div>
+                    <NotificationPreferences 
+                      defaultPreferences={{
+                        email: true,
+                        push: true,
+                        sms: false,
+                        frequency: 'immediate'
+                      }}
+                      onSave={(preferences) => {
+                        console.log('Saved preferences:', preferences);
+                        // Here you would typically save to Supabase
+                      }}
+                    />
                   </TabsContent>
                   
                   <TabsContent value="account" className="space-y-6">
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                      <div className="flex items-start mb-4">
-                        <div className="rounded-full bg-green-100 p-2 mr-4">
-                          <CreditCard className="h-5 w-5 text-green-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-lg mb-1">Subscription Plan</h3>
-                          <p className="text-gray-600 mb-4">You are currently on the <strong>{subscription?.plans?.name || 'Free'}</strong> plan.</p>
-                          
-                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mb-4">
-                            <div className="flex justify-between mb-2">
-                              <span className="text-gray-600">Handle limit</span>
-                              <span className="font-medium">{subscription?.plans?.handle_limit || 3}</span>
-                            </div>
-                            <div className="flex justify-between mb-2">
-                              <span className="text-gray-600">Check frequency</span>
-                              <span className="font-medium">{subscription?.plans?.check_frequency || 'daily'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Price</span>
-                              <span className="font-medium">${subscription?.plans?.price || 0}/month</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="border-t border-gray-200 pt-4 mt-4">
-                        <h4 className="font-medium mb-4">Upgrade your plan for more features</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="border border-brand-blue rounded-lg p-4">
-                            <h3 className="font-semibold text-lg mb-2">Standard Plan</h3>
-                            <p className="text-gray-600 mb-4">Monitor up to 10 handles with hourly checks</p>
-                            <Button 
-                              className="w-full bg-brand-blue hover:bg-brand-purple text-white"
-                              onClick={() => handleUpgrade('Standard')}
-                            >
-                              Upgrade to Standard - $5/month
-                            </Button>
-                          </div>
-                          <div className="border border-brand-purple rounded-lg p-4 bg-gradient-to-br from-brand-blue/5 to-brand-purple/5">
-                            <h3 className="font-semibold text-lg mb-2">Pro Plan</h3>
-                            <p className="text-gray-600 mb-4">Monitor up to 30 handles with real-time checks</p>
-                            <Button 
-                              className="w-full bg-brand-purple hover:bg-brand-blue text-white"
-                              onClick={() => handleUpgrade('Pro')}
-                            >
-                              Upgrade to Pro - $12/month
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <SubscriptionTier 
+                      currentPlan={{
+                        name: subscription?.plans?.name || 'Free',
+                        price: subscription?.plans?.price || 0,
+                        handleLimit: subscription?.plans?.handle_limit || 3,
+                        checkFrequency: subscription?.plans?.check_frequency || 'daily',
+                        usedHandles: 1 // This would need to be fetched from your database
+                      }}
+                      onUpgrade={handleUpgrade}
+                    />
                     
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                       <div className="flex items-start mb-4">
