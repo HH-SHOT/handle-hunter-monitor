@@ -130,3 +130,5 @@ const getStatusComponent = (status: string) => {
 const DashboardDemo = () => {
   // ... rest of the code remains unchanged
 };
+
+export default DashboardDemo;
