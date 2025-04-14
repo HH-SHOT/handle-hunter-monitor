@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { 
   Bell, 
   Plus,
@@ -458,7 +458,10 @@ const DashboardDemo = () => {
   const deleteHandle = async () => {
     if (!user || !handleToDelete) return;
     
+    setIsLoading(true);
     try {
+      console.log(`Attempting to delete handle: ${handleToDelete.id}`);
+      
       // First delete associated history records
       const { error: historyError } = await supabase
         .from('handle_history')
@@ -467,6 +470,7 @@ const DashboardDemo = () => {
       
       if (historyError) {
         console.error('Error deleting handle history:', historyError);
+        throw historyError;
       }
       
       // Then delete the handle
@@ -477,6 +481,7 @@ const DashboardDemo = () => {
       
       if (error) throw error;
       
+      // Update local state to remove the deleted handle
       setHandles(prev => prev.filter(handle => handle.id !== handleToDelete.id));
       
       toast({
@@ -484,6 +489,7 @@ const DashboardDemo = () => {
         description: "The handle has been removed from monitoring.",
       });
       
+      // Close the dialog and reset handleToDelete
       setShowDeleteDialog(false);
       setHandleToDelete(null);
     } catch (error: any) {
@@ -493,6 +499,8 @@ const DashboardDemo = () => {
         description: error.message || "There was a problem removing your handle.",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -777,23 +785,41 @@ const DashboardDemo = () => {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <Dialog open={showDeleteDialog} onOpenChange={(open) => {
+        if (!open) {
+          setShowDeleteDialog(false);
+          setHandleToDelete(null);
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Handle</DialogTitle>
+            <DialogDescription>
+              This will permanently remove the handle from monitoring and delete all associated history.
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <p>Are you sure you want to delete {handleToDelete && `@${handleToDelete.name}`}?</p>
-            <p className="text-sm text-gray-500 mt-2">This will remove the handle from monitoring and delete all associated history. This action cannot be undone.</p>
+            <p className="text-sm text-gray-500 mt-2">This action cannot be undone.</p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowDeleteDialog(false);
+                setHandleToDelete(null);
+              }}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
             <Button 
               variant="destructive" 
               onClick={deleteHandle}
+              disabled={isLoading}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              Delete
+              {isLoading ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
