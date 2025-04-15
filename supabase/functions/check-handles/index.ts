@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
 
@@ -7,40 +6,78 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const platformStrategies = {
+  async twitter(handle: string): Promise<'available' | 'unavailable'> {
+    try {
+      const response = await fetch(`https://twitter.com/${handle}`, {
+        method: 'HEAD',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+      return response.status === 404 ? 'available' : 'unavailable';
+    } catch {
+      return 'unavailable';
+    }
+  },
+  
+  async instagram(handle: string): Promise<'available' | 'unavailable'> {
+    try {
+      const response = await fetch(`https://www.instagram.com/${handle}`, {
+        method: 'HEAD',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+      return response.status === 404 ? 'available' : 'unavailable';
+    } catch {
+      return 'unavailable';
+    }
+  },
+
+  async facebook(handle: string): Promise<'available' | 'unavailable'> {
+    try {
+      const response = await fetch(`https://www.facebook.com/${handle}`, {
+        method: 'HEAD',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+      return response.status === 404 ? 'available' : 'unavailable';
+    } catch {
+      return 'unavailable';
+    }
+  },
+
+  async tiktok(handle: string): Promise<'available' | 'unavailable'> {
+    try {
+      const response = await fetch(`https://www.tiktok.com/@${handle}`, {
+        method: 'HEAD',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+      return response.status === 404 ? 'available' : 'unavailable';
+    } catch {
+      return 'unavailable';
+    }
+  }
+};
+
 // Utility function to check handle availability
 async function checkHandleAvailability(handle: string, platform: string): Promise<'available' | 'unavailable'> {
-  let url = '';
+  const platformStrategy = platformStrategies[platform];
   
-  if (platform === 'instagram') {
-    url = `https://www.instagram.com/${handle}`;
-  } else if (platform === 'twitter') {
-    url = `https://twitter.com/${handle}`;
-  } else if (platform === 'facebook') {
-    url = `https://www.facebook.com/${handle}`;
-  } else if (platform === 'tiktok') {
-    url = `https://www.tiktok.com/@${handle}`;
-  } else {
+  if (!platformStrategy) {
     console.log(`Unsupported platform: ${platform}`);
     return 'unavailable';
   }
 
   try {
-    console.log(`Checking ${platform} handle: ${handle} at ${url}`);
-    const res = await fetch(url, { 
-      method: 'HEAD',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
-    });
-    
-    console.log(`Response status for ${handle} on ${platform}: ${res.status}`);
-    
-    // If we get a 404, the handle is available
-    if (res.status === 404) {
-      return 'available';
-    }
-    
-    return 'unavailable';
+    console.log(`Checking ${platform} handle: ${handle}`);
+    const status = await platformStrategy(handle);
+    console.log(`Response status for ${handle} on ${platform}: ${status}`);
+    return status;
   } catch (err) {
     console.error(`Error checking ${platform} handle ${handle}:`, err);
     return 'unavailable'; // Default to unavailable on error
