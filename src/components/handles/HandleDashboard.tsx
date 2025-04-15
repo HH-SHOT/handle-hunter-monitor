@@ -9,9 +9,9 @@ import {
   Search,
   Filter
 } from 'lucide-react';
-import { Handle, HandleFormData } from './types';
+import { Handle, HandleFormData, DbHandle } from './types';
 import { toast } from "@/hooks/use-toast";
-import { supabase, HandleType } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import HandleList from './HandleList';
 import AddHandleForm from './AddHandleForm';
 import { Separator } from '@/components/ui/separator';
@@ -91,13 +91,13 @@ const HandleDashboard = () => {
       
       if (error) throw error;
       
-      const formattedHandles = data.map((handle: HandleType) => ({
+      const formattedHandles: Handle[] = data.map((handle: DbHandle) => ({
         id: handle.id,
         name: handle.name,
-        platform: handle.platform as 'twitter' | 'instagram' | 'facebook' | 'tiktok',
-        status: handle.status as 'available' | 'unavailable' | 'monitoring',
-        lastChecked: new Date(handle.last_checked).toLocaleString(),
-        notifications: handle.notifications,
+        platform: convertToPlatformType(handle.platform),
+        status: convertToStatusType(handle.status),
+        lastChecked: handle.last_checked ? new Date(handle.last_checked).toLocaleString() : 'never',
+        notifications: handle.notifications_enabled !== null ? handle.notifications_enabled : true,
       }));
       
       setHandles(formattedHandles.length > 0 ? formattedHandles : mockHandles);
@@ -111,6 +111,22 @@ const HandleDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to convert platform string to our type
+  const convertToPlatformType = (platform: string): 'twitter' | 'instagram' | 'facebook' | 'tiktok' => {
+    if (platform === 'twitter' || platform === 'instagram' || platform === 'facebook' || platform === 'tiktok') {
+      return platform;
+    }
+    return 'twitter'; // Default fallback
+  };
+
+  // Helper function to convert status string to our type
+  const convertToStatusType = (status: string): 'available' | 'unavailable' | 'monitoring' => {
+    if (status === 'available' || status === 'unavailable' || status === 'monitoring') {
+      return status;
+    }
+    return 'monitoring'; // Default fallback
   };
 
   const handleRefresh = async () => {
@@ -209,7 +225,7 @@ const HandleDashboard = () => {
             platform: data.platform,
             status: 'monitoring',
             user_id: user?.id,
-            notifications: true,
+            notifications_enabled: true,
             last_checked: new Date().toISOString()
           })
           .select()
@@ -220,8 +236,8 @@ const HandleDashboard = () => {
         const formattedHandle: Handle = {
           id: newHandle.id,
           name: newHandle.name,
-          platform: newHandle.platform,
-          status: newHandle.status,
+          platform: convertToPlatformType(newHandle.platform),
+          status: convertToStatusType(newHandle.status),
           lastChecked: 'just now',
           notifications: true
         };
@@ -253,7 +269,7 @@ const HandleDashboard = () => {
       const { error } = await supabase
         .from('handles')
         .update({
-          notifications: newNotificationState,
+          notifications_enabled: newNotificationState,
           updated_at: new Date().toISOString()
         })
         .eq('id', handle.id);
