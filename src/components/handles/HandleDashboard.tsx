@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { 
-  Plus,
-  RefreshCw,
+  RefreshCw, 
+  PlusCircle,
+  Bell,
+  BellOff,
+  Trash2,
   Search,
   Filter
 } from 'lucide-react';
@@ -15,79 +16,71 @@ import { supabase } from '@/integrations/supabase/client';
 import HandleList from './HandleList';
 import AddHandleForm from './AddHandleForm';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { mockHandles } from './mockHandles';
 
-// Mock data for initial development
-const mockHandles: Handle[] = [
-  { 
-    id: '1', 
-    name: 'productlaunch', 
-    platform: 'twitter',
-    status: 'unavailable', 
-    lastChecked: '2 minutes ago',
-    notifications: true
-  },
-  { 
-    id: '2', 
-    name: 'appmaker', 
-    platform: 'instagram',
-    status: 'available', 
-    lastChecked: '5 minutes ago',
-    notifications: true
-  },
-  { 
-    id: '3', 
-    name: 'techbrand', 
-    platform: 'twitter',
-    status: 'monitoring', 
-    lastChecked: 'just now',
-    notifications: true
-  },
-  { 
-    id: '4', 
-    name: 'newproduct', 
-    platform: 'facebook',
-    status: 'unavailable', 
-    lastChecked: '15 minutes ago',
-    notifications: false
-  },
-  { 
-    id: '5', 
-    name: 'digitalservices', 
-    platform: 'twitter',
-    status: 'unavailable', 
-    lastChecked: '32 minutes ago',
-    notifications: true
+// Validation functions
+const validateHandles = (handles: Handle[]): string | null => {
+  if (handles.length === 0) {
+    return "Please add at least one handle to monitor";
   }
-];
+  return null;
+};
+
+const validateEmail = (email: string): string | null => {
+  if (!email) {
+    return "Email is required for notifications";
+  }
+  
+  // Basic email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return "Please enter a valid email address";
+  }
+  
+  return null;
+};
 
 const HandleDashboard = () => {
   const { user } = useAuth();
-  const [handles, setHandles] = useState<Handle[]>(mockHandles);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [currentHandle, setCurrentHandle] = useState<HandleFormData>({
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedHandle, setSelectedHandle] = useState<HandleFormData>({
     name: '',
     platform: 'twitter'
   });
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+  const [handles, setHandles] = useState<Handle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [platformFilter, setPlatformFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [email, setEmail] = useState(user?.email || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [errors, setErrors] = useState<{
+    handles: string | null;
+    email: string | null;
+  }>({
+    handles: null,
+    email: null,
+  });
 
-  // Fetch handles from Supabase
   useEffect(() => {
     if (user) {
       fetchHandles();
+    } else {
+      setHandles(mockHandles);
+      setLoading(false);
     }
   }, [user]);
 
   const fetchHandles = async () => {
-    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('handles')
         .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
+        .eq('user_id', user?.id);
       
       if (error) throw error;
       
@@ -101,10 +94,11 @@ const HandleDashboard = () => {
       }));
       
       setHandles(formattedHandles.length > 0 ? formattedHandles : mockHandles);
+      
     } catch (error) {
       console.error('Error fetching handles:', error);
       toast({
-        title: "Failed to Load Handles",
+        title: "Error fetching handles",
         description: "There was a problem loading your handles.",
         variant: "destructive"
       });
@@ -130,70 +124,167 @@ const HandleDashboard = () => {
   };
 
   const handleRefresh = async () => {
-    setRefreshing(true);
+    setLoading(true);
     await fetchHandles();
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+    toast({
+      title: "Handles refreshed",
+      description: "Your handles have been checked for availability.",
+    });
   };
 
-  const handleDelete = async (handle: Handle) => {
-    try {
-      setLoading(true);
-      // First delete any history records for this handle
-      await supabase
-        .from('handle_history')
-        .delete()
-        .eq('handle_id', handle.id);
-        
-      // Then delete the handle itself
-      const { error } = await supabase
-        .from('handles')
-        .delete()
-        .eq('id', handle.id);
-      
-      if (error) throw error;
-      
-      setHandles(handles.filter(h => h.id !== handle.id));
-      toast({
-        title: "Handle Deleted",
-        description: `@${handle.name} has been removed from monitoring.`,
-      });
-    } catch (error) {
-      console.error('Error deleting handle:', error);
-      toast({
-        title: "Delete Failed",
-        description: "There was a problem removing this handle.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+  const handleAddNew = () => {
+    setIsEditMode(false);
+    setSelectedHandle({
+      name: '',
+      platform: 'twitter'
+    });
+    setIsFormOpen(true);
   };
 
   const handleEdit = (handle: Handle) => {
-    setCurrentHandle({
+    setIsEditMode(true);
+    setSelectedHandle({
       id: handle.id,
       name: handle.name,
       platform: handle.platform
     });
-    setIsEditing(true);
-    setIsDialogOpen(true);
+    setIsFormOpen(true);
   };
 
-  const handleAdd = () => {
-    setCurrentHandle({
-      name: '',
-      platform: 'twitter'
+  const handleClose = () => {
+    setIsFormOpen(false);
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleFilterChange = (type: 'platform' | 'status', value: string | null) => {
+    if (type === 'platform') {
+      setPlatformFilter(value);
+    } else {
+      setStatusFilter(value);
+    }
+  };
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setPlatformFilter(null);
+    setStatusFilter(null);
+  };
+
+  const getFilteredHandles = () => {
+    return handles.filter(handle => {
+      // Filter by search query
+      const matchesSearch = handle.name.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Filter by platform
+      const matchesPlatform = !platformFilter || handle.platform === platformFilter;
+      
+      // Filter by status
+      const matchesStatus = !statusFilter || handle.status === statusFilter;
+      
+      return matchesSearch && matchesPlatform && matchesStatus;
     });
-    setIsEditing(false);
-    setIsDialogOpen(true);
   };
 
-  const handleSave = async (data: HandleFormData) => {
+  const handleDelete = async (handleToDelete: Handle) => {
+    if (!user) {
+      // Mock deletion for demo mode
+      setHandles(handles.filter(h => h.id !== handleToDelete.id));
+      toast({
+        title: "Handle removed",
+        description: "The handle has been removed from your list.",
+      });
+      return;
+    }
+    
     try {
-      setLoading(true);
-      if (isEditing && data.id) {
+      const { error } = await supabase
+        .from('handles')
+        .delete()
+        .eq('id', handleToDelete.id);
+      
+      if (error) throw error;
+      
+      setHandles(handles.filter(h => h.id !== handleToDelete.id));
+      
+      toast({
+        title: "Handle removed",
+        description: "The handle has been removed from your monitoring list.",
+      });
+    } catch (error) {
+      console.error('Error deleting handle:', error);
+      toast({
+        title: "Error removing handle",
+        description: "There was a problem removing this handle.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate inputs
+    const handlesError = validateHandles(handles);
+    const emailError = validateEmail(email);
+
+    setErrors({
+      handles: handlesError,
+      email: emailError,
+    });
+
+    // If no errors, submit form
+    if (!handlesError && !emailError) {
+      setIsSubmitting(true);
+
+      // Simulate API call
+      setTimeout(() => {
+        setIsSubmitting(false);
+        setIsSuccess(true);
+
+        // Reset after 3 seconds
+        setTimeout(() => {
+          setIsSuccess(false);
+        }, 3000);
+      }, 1500);
+    }
+  };
+
+  const handleSaveHandle = async (data: HandleFormData) => {
+    if (!user) {
+      // Mock saving for demo mode
+      if (isEditMode) {
+        // Update existing handle
+        setHandles(handles.map(h => 
+          h.id === data.id ? { ...h, name: data.name, platform: data.platform } : h
+        ));
+      } else {
+        // Add new handle
+        const newHandle: Handle = {
+          id: `mock-${Date.now()}`,
+          name: data.name,
+          platform: data.platform,
+          status: 'monitoring',
+          lastChecked: 'just now',
+          notifications: true
+        };
+        setHandles([...handles, newHandle]);
+      }
+      
+      setIsFormOpen(false);
+      toast({
+        title: isEditMode ? "Handle updated" : "Handle added",
+        description: isEditMode 
+          ? "Your handle has been updated successfully." 
+          : "Your new handle has been added for monitoring.",
+      });
+      return;
+    }
+    
+    try {
+      if (isEditMode && data.id) {
         // Update existing handle
         const { error } = await supabase
           .from('handles')
@@ -206,16 +297,10 @@ const HandleDashboard = () => {
         
         if (error) throw error;
         
-        setHandles(handles.map(h => h.id === data.id ? {
-          ...h,
-          name: data.name,
-          platform: data.platform
-        } : h));
+        setHandles(handles.map(h => 
+          h.id === data.id ? { ...h, name: data.name, platform: data.platform } : h
+        ));
         
-        toast({
-          title: "Handle Updated",
-          description: `@${data.name} has been updated.`,
-        });
       } else {
         // Add new handle
         const { data: newHandle, error } = await supabase
@@ -242,30 +327,39 @@ const HandleDashboard = () => {
           notifications: true
         };
         
-        setHandles([formattedHandle, ...handles]);
-        
-        toast({
-          title: "Handle Added",
-          description: `@${data.name} is now being monitored.`,
-        });
+        setHandles([...handles, formattedHandle]);
       }
+      
+      setIsFormOpen(false);
+      
+      toast({
+        title: isEditMode ? "Handle updated" : "Handle added",
+        description: isEditMode 
+          ? "Your handle has been updated successfully." 
+          : "Your new handle has been added for monitoring.",
+      });
     } catch (error) {
       console.error('Error saving handle:', error);
       toast({
-        title: "Save Failed",
-        description: "There was a problem saving this handle.",
+        title: "Error saving handle",
+        description: "There was a problem saving your handle.",
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
-      setIsDialogOpen(false);
     }
   };
 
   const handleToggleNotifications = async (handle: Handle) => {
+    if (!user) {
+      // Mock toggle for demo mode
+      setHandles(handles.map(h => 
+        h.id === handle.id ? { ...h, notifications: !h.notifications } : h
+      ));
+      return;
+    }
+    
+    const newNotificationState = !handle.notifications;
+    
     try {
-      const newNotificationState = !handle.notifications;
-      
       const { error } = await supabase
         .from('handles')
         .update({
@@ -276,71 +370,142 @@ const HandleDashboard = () => {
       
       if (error) throw error;
       
-      setHandles(handles.map(h => h.id === handle.id ? {
-        ...h,
-        notifications: newNotificationState
-      } : h));
+      setHandles(handles.map(h => 
+        h.id === handle.id ? { ...h, notifications: newNotificationState } : h
+      ));
       
       toast({
-        title: newNotificationState ? "Notifications Enabled" : "Notifications Disabled",
-        description: `You will ${newNotificationState ? 'now' : 'no longer'} receive alerts for @${handle.name}.`,
+        title: `Notifications ${newNotificationState ? 'enabled' : 'disabled'}`,
+        description: `You will ${newNotificationState ? 'now' : 'no longer'} receive notifications for @${handle.name}.`,
       });
     } catch (error) {
       console.error('Error toggling notifications:', error);
       toast({
-        title: "Update Failed",
+        title: "Error updating notifications",
         description: "There was a problem updating notification settings.",
         variant: "destructive"
       });
     }
   };
 
-  const filteredHandles = handles.filter(handle => 
-    handle.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    handle.platform.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 bg-gray-50 flex flex-wrap items-center justify-between gap-4">
-          <h3 className="font-semibold text-gray-800">Your Handles</h3>
-          <div className="flex flex-wrap gap-3 items-center">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search handles..."
-                className="pl-8 w-[200px]"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Button variant="outline" size="sm" onClick={handleRefresh}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-            <Button onClick={handleAdd}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Handle
+    <div className="w-full max-w-4xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Your Handles</h2>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleRefresh}
+            disabled={loading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </Button>
+          
+          <Button onClick={handleAddNew} className="flex items-center gap-2">
+            <PlusCircle className="h-4 w-4" />
+            Add Handle
+          </Button>
+        </div>
+      </div>
+      
+      <div className="bg-white rounded-lg border shadow-sm p-6 mb-8">
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input 
+              placeholder="Search handles..." 
+              className="pl-10"
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
+          </div>
+          
+          <div className="flex gap-2">
+            <select 
+              className="px-3 py-2 border rounded-md bg-white text-sm"
+              value={platformFilter || ''}
+              onChange={(e) => handleFilterChange('platform', e.target.value || null)}
+            >
+              <option value="">All Platforms</option>
+              <option value="twitter">Twitter</option>
+              <option value="instagram">Instagram</option>
+              <option value="facebook">Facebook</option>
+              <option value="tiktok">TikTok</option>
+            </select>
+            
+            <select 
+              className="px-3 py-2 border rounded-md bg-white text-sm"
+              value={statusFilter || ''}
+              onChange={(e) => handleFilterChange('status', e.target.value || null)}
+            >
+              <option value="">All Statuses</option>
+              <option value="available">Available</option>
+              <option value="unavailable">Unavailable</option>
+              <option value="monitoring">Monitoring</option>
+            </select>
+            
+            <Button variant="ghost" size="sm" onClick={handleClearFilters}>
+              Clear
             </Button>
           </div>
         </div>
         
-        <HandleList 
-          handles={filteredHandles}
+        <div className="mb-4">
+          {errors.handles && (
+            <div className="text-red-500 text-sm mb-2">{errors.handles}</div>
+          )}
+        </div>
+        
+        <HandleList
+          handles={getFilteredHandles()}
           loading={loading}
-          onEdit={handleEdit}
           onDelete={handleDelete}
+          onEdit={handleEdit}
           onToggleNotifications={handleToggleNotifications}
         />
+        
+        <form onSubmit={handleSubmit} className="mt-6">
+          <div className="border-t pt-6">
+            <h3 className="font-medium mb-2">Notification Settings</h3>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <label htmlFor="email" className="block text-sm text-gray-600 mb-1">
+                  Email for notifications
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className={errors.email ? "border-red-500" : ""}
+                />
+                {errors.email && (
+                  <div className="text-red-500 text-sm mt-1">{errors.email}</div>
+                )}
+              </div>
+              <div className="flex items-end">
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting || isSuccess}
+                  className="w-full sm:w-auto"
+                >
+                  {isSubmitting ? 'Saving...' : isSuccess ? 'Saved!' : 'Save Settings'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </form>
       </div>
       
-      <AddHandleForm 
-        isOpen={isDialogOpen}
-        isEdit={isEditing}
-        initialData={currentHandle}
-        onClose={() => setIsDialogOpen(false)}
-        onSave={handleSave}
+      <AddHandleForm
+        isOpen={isFormOpen}
+        isEdit={isEditMode}
+        initialData={selectedHandle}
+        onClose={handleClose}
+        onSave={handleSaveHandle}
       />
     </div>
   );
