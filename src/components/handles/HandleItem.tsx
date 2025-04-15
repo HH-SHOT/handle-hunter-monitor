@@ -64,7 +64,9 @@ const getStatusComponent = (status: string) => {
       return (
         <div className="flex items-center text-amber-600 animate-pulse-slow">
           <Clock className="h-4 w-4 mr-1" />
-          <span className="bg-yellow-100 px-2 py-0.5 rounded-full text-xs">Monitoring</span>
+          <span className="bg-yellow-100 px-2 py-0.5 rounded-full text-xs">
+            {status === 'available' ? 'Available' : 'Taken'}
+          </span>
         </div>
       );
     default:
@@ -73,6 +75,11 @@ const getStatusComponent = (status: string) => {
 };
 
 const HandleItem = ({ handle, onEdit, onDelete, onToggleNotifications }: HandleItemProps) => {
+  // Determine the display status based on monitoring state
+  const displayStatus = handle.status === 'monitoring' ? 
+    (handle.status === 'available' ? 'Available' : 'Taken') : 
+    handle.status;
+
   return (
     <tr key={handle.id} className="hover:bg-gray-50">
       <td className="px-4 py-3">
