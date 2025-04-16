@@ -126,25 +126,26 @@ serve(async (req) => {
       
       for (const handle of handles) {
         try {
-          const newStatus = await checkHandleAvailability(handle.name, handle.platform);
-          const lastChecked = new Date().toISOString();
-          
-          // Update handle status
-          const { error: updateError } = await supabaseClient
-            .from('handles')
-            .update({ 
-              status: newStatus, 
-              last_checked: lastChecked 
-            })
-            .eq('id', handle.id);
+          // Check if the handle is in 'monitoring' status or needs to be refreshed
+          if (handle.status === 'monitoring' || refresh) {
+            const newStatus = await checkHandleAvailability(handle.name, handle.platform);
+            const lastChecked = new Date().toISOString();
             
-          if (updateError) {
-            console.error(`Error updating handle ${handle.name}:`, updateError);
-            continue;
-          }
-          
-          // Only create history record if status changed
-          if (handle.status !== newStatus) {
+            // Update handle status
+            const { error: updateError } = await supabaseClient
+              .from('handles')
+              .update({ 
+                status: newStatus, 
+                last_checked: lastChecked 
+              })
+              .eq('id', handle.id);
+              
+            if (updateError) {
+              console.error(`Error updating handle ${handle.name}:`, updateError);
+              continue;
+            }
+            
+            // Create history record
             const { error: historyError } = await supabaseClient
               .from('handle_history')
               .insert({
@@ -164,17 +165,27 @@ serve(async (req) => {
                 userId: handle.user_id
               });
             }
+            
+            results.push({
+              id: handle.id,
+              name: handle.name,
+              platform: handle.platform,
+              status: newStatus,
+              changed: handle.status !== newStatus
+            });
+            
+            console.log(`Updated handle ${handle.name} to ${newStatus}`);
+          } else {
+            // Skip handles that are not in monitoring state and not explicitly refreshed
+            console.log(`Skipping handle ${handle.name} with status ${handle.status}`);
+            results.push({
+              id: handle.id,
+              name: handle.name,
+              platform: handle.platform,
+              status: handle.status,
+              changed: false
+            });
           }
-          
-          results.push({
-            id: handle.id,
-            name: handle.name,
-            platform: handle.platform,
-            status: newStatus,
-            changed: handle.status !== newStatus
-          });
-          
-          console.log(`Updated handle ${handle.name} to ${newStatus}`);
         } catch (error) {
           console.error(`Error processing handle ${handle.name}:`, error);
         }
