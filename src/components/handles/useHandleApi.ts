@@ -347,6 +347,7 @@ export const useHandleApi = (user: any) => {
 
   return {
     loading,
+    setLoading, // Explicitly expose setLoading
     refreshingHandles,
     fetchHandles,
     refreshAllHandles,

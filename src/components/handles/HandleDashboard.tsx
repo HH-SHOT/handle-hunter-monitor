@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Handle, HandleFormData } from './types';
@@ -14,6 +13,7 @@ const HandleDashboard = () => {
   const { user } = useAuth();
   const {
     loading,
+    setLoading,
     refreshingHandles,
     fetchHandles,
     refreshAllHandles,
@@ -46,13 +46,23 @@ const HandleDashboard = () => {
 
   useEffect(() => {
     const loadHandles = async () => {
-      const data = await fetchHandles();
-      setHandles(data);
-      setLoading(false);
+      try {
+        setLoading(true);
+        const data = await fetchHandles();
+        setHandles(data);
+      } catch (error) {
+        console.error("Error loading handles:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    loadHandles();
-  }, [user]);
+    if (user) {
+      loadHandles();
+    } else {
+      setLoading(false);
+    }
+  }, [user, fetchHandles, setLoading]);
 
   const handleRefresh = async () => {
     const updatedHandles = await refreshAllHandles(handles);
@@ -107,15 +117,9 @@ const HandleDashboard = () => {
 
   const getFilteredHandles = () => {
     return handles.filter(handle => {
-      // Filter by search query
       const matchesSearch = handle.name.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      // Filter by platform
       const matchesPlatform = !platformFilter || handle.platform === platformFilter;
-      
-      // Filter by status
       const matchesStatus = !statusFilter || handle.status === statusFilter;
-      
       return matchesSearch && matchesPlatform && matchesStatus;
     });
   };
@@ -128,7 +132,6 @@ const HandleDashboard = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate inputs
     const handlesError = validateHandles(handles);
     const emailError = validateEmail(email);
 
@@ -137,16 +140,13 @@ const HandleDashboard = () => {
       email: emailError,
     });
 
-    // If no errors, submit form
     if (!handlesError && !emailError) {
       setIsSubmitting(true);
 
-      // Simulate API call
       setTimeout(() => {
         setIsSubmitting(false);
         setIsSuccess(true);
 
-        // Reset after 3 seconds
         setTimeout(() => {
           setIsSuccess(false);
         }, 3000);
@@ -165,7 +165,6 @@ const HandleDashboard = () => {
     setHandles(updatedHandles);
   };
 
-  // Helper function to set loading state (used for useEffect)
   const setLoading = (isLoading: boolean) => {
     // This is just a wrapper for the loading state from useHandleApi
   };
