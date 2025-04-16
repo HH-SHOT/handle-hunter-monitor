@@ -11,7 +11,8 @@ import {
   XCircle,
   Clock,
   Bell,
-  BellOff
+  BellOff,
+  RefreshCw
 } from 'lucide-react';
 import { Handle } from './types';
 import { Button } from '@/components/ui/button';
@@ -21,12 +22,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface HandleItemProps {
   handle: Handle;
+  isRefreshing?: boolean;
   onEdit: (handle: Handle) => void;
   onDelete: (handle: Handle) => void;
   onToggleNotifications: (handle: Handle) => void;
+  onCheckHandle?: (handle: Handle) => void;
 }
 
 const getPlatformIcon = (platform: string) => {
@@ -72,7 +76,14 @@ const getStatusComponent = (status: string) => {
   }
 };
 
-const HandleItem = ({ handle, onEdit, onDelete, onToggleNotifications }: HandleItemProps) => {
+const HandleItem = ({ 
+  handle, 
+  isRefreshing = false, 
+  onEdit, 
+  onDelete, 
+  onToggleNotifications, 
+  onCheckHandle 
+}: HandleItemProps) => {
   return (
     <tr key={handle.id} className="hover:bg-gray-50">
       <td className="px-4 py-3">
@@ -87,7 +98,31 @@ const HandleItem = ({ handle, onEdit, onDelete, onToggleNotifications }: HandleI
         </div>
       </td>
       <td className="px-4 py-3">
-        {getStatusComponent(handle.status)}
+        <div className="flex items-center space-x-2">
+          {getStatusComponent(handle.status)}
+          
+          {onCheckHandle && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 rounded-full"
+                    onClick={() => onCheckHandle(handle)}
+                    disabled={isRefreshing}
+                  >
+                    <RefreshCw className={`h-3 w-3 text-gray-500 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    <span className="sr-only">Check now</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Check availability now</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
       </td>
       <td className="px-4 py-3 text-sm text-gray-500">
         {handle.lastChecked}

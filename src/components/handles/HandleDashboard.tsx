@@ -52,6 +52,7 @@ const HandleDashboard = () => {
   });
   const [handles, setHandles] = useState<Handle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshingHandles, setRefreshingHandles] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [platformFilter, setPlatformFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -125,11 +126,122 @@ const HandleDashboard = () => {
 
   const handleRefresh = async () => {
     setLoading(true);
-    await fetchHandles();
-    toast({
-      title: "Handles refreshed",
-      description: "Your handles have been checked for availability.",
-    });
+    
+    if (!user) {
+      // Mock refresh behavior for demo mode
+      const updatedHandles = handles.map(handle => {
+        if (handle.status === 'monitoring') {
+          // Randomly set to available or unavailable
+          const newStatus = Math.random() > 0.7 ? 'available' : 'unavailable';
+          return { ...handle, status: newStatus, lastChecked: new Date().toLocaleString() };
+        }
+        return handle;
+      });
+      
+      setHandles(updatedHandles);
+      setLoading(false);
+      
+      toast({
+        title: "Handles refreshed",
+        description: "Your handles have been checked for availability.",
+      });
+      
+      return;
+    }
+    
+    try {
+      // Call the edge function to refresh all handles
+      const { data, error } = await supabase.functions.invoke('check-handles', {
+        body: { refresh: true }
+      });
+      
+      if (error) throw error;
+      
+      if (data.success) {
+        // Fetch the handles again to get the updated data
+        await fetchHandles();
+        
+        // Check if any handles changed status
+        const changedHandles = data.results?.filter((result: any) => result.changed) || [];
+        
+        if (changedHandles.length > 0) {
+          toast({
+            title: `${changedHandles.length} handle${changedHandles.length > 1 ? 's' : ''} updated`,
+            description: "Status changes have been detected during refresh.",
+            variant: "default"
+          });
+        } else {
+          toast({
+            title: "Handles refreshed",
+            description: "No status changes detected.",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing handles:', error);
+      toast({
+        title: "Error refreshing handles",
+        description: "There was a problem checking your handles.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckSingleHandle = async (handle: Handle) => {
+    if (!user) {
+      // Mock check for demo mode
+      const newStatus = Math.random() > 0.7 ? 'available' : 'unavailable';
+      setHandles(handles.map(h => 
+        h.id === handle.id ? { ...h, status: newStatus, lastChecked: new Date().toLocaleString() } : h
+      ));
+      
+      toast({
+        title: `@${handle.name} checked`,
+        description: `This handle is now ${newStatus}.`,
+      });
+      
+      return;
+    }
+    
+    try {
+      setRefreshingHandles(prev => [...prev, handle.id]);
+      
+      // Call the edge function to check just this handle
+      const { data, error } = await supabase.functions.invoke('check-handles', {
+        body: { handleId: handle.id }
+      });
+      
+      if (error) throw error;
+      
+      if (data.success && data.handle) {
+        const updatedHandle = data.handle;
+        
+        // Update this handle in the local state
+        setHandles(handles.map(h => 
+          h.id === handle.id ? { 
+            ...h, 
+            status: convertToStatusType(updatedHandle.status), 
+            lastChecked: new Date(updatedHandle.lastChecked).toLocaleString() 
+          } : h
+        ));
+        
+        toast({
+          title: `@${handle.name} checked`,
+          description: `This handle is now ${updatedHandle.status}.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error checking handle:', error);
+      toast({
+        title: "Error checking handle",
+        description: "There was a problem checking this handle.",
+        variant: "destructive"
+      });
+    } finally {
+      setRefreshingHandles(prev => prev.filter(id => id !== handle.id));
+    }
   };
 
   const handleAddNew = () => {
@@ -400,7 +512,7 @@ const HandleDashboard = () => {
             className="flex items-center gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            {loading ? 'Refreshing...' : 'Refresh'}
+            {loading ? 'Refreshing...' : 'Refresh All'}
           </Button>
           
           <Button onClick={handleAddNew} className="flex items-center gap-2">
@@ -461,9 +573,11 @@ const HandleDashboard = () => {
         <HandleList
           handles={getFilteredHandles()}
           loading={loading}
+          refreshingHandles={refreshingHandles}
           onDelete={handleDelete}
           onEdit={handleEdit}
           onToggleNotifications={handleToggleNotifications}
+          onCheckHandle={handleCheckSingleHandle}
         />
         
         <form onSubmit={handleSubmit} className="mt-6">
