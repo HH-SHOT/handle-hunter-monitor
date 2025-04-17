@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Handle, DbHandle, HandleFormData } from './types';
@@ -282,6 +283,15 @@ export const useHandleApi = (user: any) => {
     }
     
     try {
+      // First, delete any associated history records (to solve foreign key constraint)
+      const { error: historyError } = await supabase
+        .from('handle_history')
+        .delete()
+        .eq('handle_id', handleToDelete.id);
+      
+      if (historyError) throw historyError;
+      
+      // Then delete the handle itself
       const { error } = await supabase
         .from('handles')
         .delete()
