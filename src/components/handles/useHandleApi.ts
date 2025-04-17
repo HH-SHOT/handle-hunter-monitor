@@ -12,9 +12,7 @@ export const useHandleApi = (user: any) => {
 
   const fetchHandles = async (): Promise<Handle[]> => {
     try {
-      // For demo mode or when there's no user
       if (!user) {
-        setLoading(false);
         return mockHandles;
       }
 
@@ -36,8 +34,6 @@ export const useHandleApi = (user: any) => {
         variant: "destructive"
       });
       return mockHandles;
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -283,15 +279,6 @@ export const useHandleApi = (user: any) => {
     }
     
     try {
-      // First, delete any associated history records (to solve foreign key constraint)
-      const { error: historyError } = await supabase
-        .from('handle_history')
-        .delete()
-        .eq('handle_id', handleToDelete.id);
-      
-      if (historyError) throw historyError;
-      
-      // Then delete the handle itself
       const { error } = await supabase
         .from('handles')
         .delete()
@@ -360,7 +347,6 @@ export const useHandleApi = (user: any) => {
 
   return {
     loading,
-    setLoading,
     refreshingHandles,
     fetchHandles,
     refreshAllHandles,
