@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Handle } from '../types';
 import { validateHandles, validateEmail } from '../handleUtils';
+import { toast } from "@/hooks/use-toast";
 
 export const useNotificationSettings = (handles: Handle[]) => {
   const { user } = useAuth();
@@ -31,9 +32,15 @@ export const useNotificationSettings = (handles: Handle[]) => {
     if (!handlesError && !emailError) {
       setIsSubmitting(true);
 
+      // Mock API call for saving notification settings
       setTimeout(() => {
         setIsSubmitting(false);
         setIsSuccess(true);
+        
+        toast({
+          title: "Notification settings saved",
+          description: "You'll receive alerts when your handles become available.",
+        });
 
         setTimeout(() => {
           setIsSuccess(false);

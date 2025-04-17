@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Handle, HandleFormData } from '../types';
@@ -29,22 +28,15 @@ export const useHandleState = () => {
   useEffect(() => {
     const loadHandles = async () => {
       try {
-        updateLoadingState(true);
         const data = await fetchHandles();
         setHandles(data);
       } catch (error) {
         console.error("Error loading handles:", error);
-      } finally {
-        updateLoadingState(false);
       }
     };
 
-    if (user) {
-      loadHandles();
-    } else {
-      updateLoadingState(false);
-    }
-  }, [user, fetchHandles, updateLoadingState]);
+    loadHandles();
+  }, [user, fetchHandles]);
 
   const handleRefresh = async () => {
     const updatedHandles = await refreshAllHandles(handles);

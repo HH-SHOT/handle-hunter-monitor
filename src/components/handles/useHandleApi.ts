@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Handle, DbHandle, HandleFormData } from './types';
@@ -12,7 +11,9 @@ export const useHandleApi = (user: any) => {
 
   const fetchHandles = async (): Promise<Handle[]> => {
     try {
+      // For demo mode or when there's no user
       if (!user) {
+        setLoading(false);
         return mockHandles;
       }
 
@@ -34,6 +35,8 @@ export const useHandleApi = (user: any) => {
         variant: "destructive"
       });
       return mockHandles;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -347,7 +350,7 @@ export const useHandleApi = (user: any) => {
 
   return {
     loading,
-    setLoading, // Explicitly expose setLoading
+    setLoading,
     refreshingHandles,
     fetchHandles,
     refreshAllHandles,
