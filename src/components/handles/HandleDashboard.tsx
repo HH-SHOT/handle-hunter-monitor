@@ -13,7 +13,7 @@ const HandleDashboard = () => {
   const { user } = useAuth();
   const {
     loading,
-    setLoading,
+    setLoading: updateLoadingState,
     refreshingHandles,
     fetchHandles,
     refreshAllHandles,
@@ -47,22 +47,22 @@ const HandleDashboard = () => {
   useEffect(() => {
     const loadHandles = async () => {
       try {
-        setLoading(true);
+        updateLoadingState(true);
         const data = await fetchHandles();
         setHandles(data);
       } catch (error) {
         console.error("Error loading handles:", error);
       } finally {
-        setLoading(false);
+        updateLoadingState(false);
       }
     };
 
     if (user) {
       loadHandles();
     } else {
-      setLoading(false);
+      updateLoadingState(false);
     }
-  }, [user, fetchHandles, setLoading]);
+  }, [user, fetchHandles, updateLoadingState]);
 
   const handleRefresh = async () => {
     const updatedHandles = await refreshAllHandles(handles);
@@ -163,10 +163,6 @@ const HandleDashboard = () => {
   const handleToggleNotifications = async (handle: Handle) => {
     const updatedHandles = await toggleNotifications(handle, handles);
     setHandles(updatedHandles);
-  };
-
-  const setLoading = (isLoading: boolean) => {
-    // This is just a wrapper for the loading state from useHandleApi
   };
 
   return (
