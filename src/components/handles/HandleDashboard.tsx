@@ -85,6 +85,7 @@ const HandleDashboard = () => {
       
       if (error) throw error;
       
+      // Fix for the type error: explicitly cast status to the correct type
       const formattedHandles: Handle[] = data.map((handle: DbHandle) => ({
         id: handle.id,
         name: handle.name,
@@ -312,6 +313,17 @@ const HandleDashboard = () => {
     }
     
     try {
+      // First delete associated history records to avoid foreign key constraint errors
+      const { error: historyError } = await supabase
+        .from('handle_history')
+        .delete()
+        .eq('handle_id', handleToDelete.id);
+      
+      if (historyError) {
+        console.error('Error deleting handle history:', historyError);
+      }
+      
+      // Then delete the handle itself
       const { error } = await supabase
         .from('handles')
         .delete()
