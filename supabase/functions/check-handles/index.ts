@@ -6,78 +6,103 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const platformStrategies = {
-  async twitter(handle: string): Promise<'available' | 'unavailable'> {
-    try {
-      const response = await fetch(`https://twitter.com/${handle}`, {
-        method: 'HEAD',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-      });
-      return response.status === 404 ? 'available' : 'unavailable';
-    } catch {
-      return 'unavailable';
-    }
-  },
-  
-  async instagram(handle: string): Promise<'available' | 'unavailable'> {
-    try {
-      const response = await fetch(`https://www.instagram.com/${handle}`, {
-        method: 'HEAD',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-      });
-      return response.status === 404 ? 'available' : 'unavailable';
-    } catch {
-      return 'unavailable';
-    }
-  },
+interface PlatformConfig {
+  url: string;
+  notFoundText: string[];
+}
 
-  async facebook(handle: string): Promise<'available' | 'unavailable'> {
-    try {
-      const response = await fetch(`https://www.facebook.com/${handle}`, {
-        method: 'HEAD',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-      });
-      return response.status === 404 ? 'available' : 'unavailable';
-    } catch {
-      return 'unavailable';
-    }
+const PLATFORMS: Record<string, PlatformConfig> = {
+  twitter: {
+    url: "https://twitter.com/",
+    notFoundText: ["This account doesn't exist", "This profile doesn't exist"],
   },
-
-  async tiktok(handle: string): Promise<'available' | 'unavailable'> {
-    try {
-      const response = await fetch(`https://www.tiktok.com/@${handle}`, {
-        method: 'HEAD',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-      });
-      return response.status === 404 ? 'available' : 'unavailable';
-    } catch {
-      return 'unavailable';
-    }
-  }
+  instagram: {
+    url: "https://www.instagram.com/",
+    notFoundText: ["Sorry, this page isn't available.", "The link you followed may be broken"],
+  },
+  facebook: {
+    url: "https://www.facebook.com/",
+    notFoundText: ["This content isn't available right now", "The link may be broken"],
+  },
+  tiktok: {
+    url: "https://www.tiktok.com/@",
+    notFoundText: ["Couldn't find this account", "This account is not available"],
+  },
 };
 
-// Utility function to check handle availability
+const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36';
+
+async function checkHandleWithHeadRequest(url: string): Promise<boolean | null> {
+  try {
+    const response = await fetch(url, {
+      method: 'HEAD',
+      headers: {
+        'User-Agent': DEFAULT_USER_AGENT
+      }
+    });
+    
+    if (response.status === 404) {
+      console.log(`HEAD request to ${url} returned 404 - handle likely available`);
+      return true;
+    } else if (response.status === 200) {
+      console.log(`HEAD request to ${url} returned 200 - proceeding to content check`);
+      return null; // Proceed to content check
+    } else {
+      console.log(`HEAD request to ${url} returned ${response.status} - proceeding to content check`);
+      return null; // Proceed to content check
+    }
+  } catch (error) {
+    console.error(`Error during HEAD request to ${url}:`, error);
+    return null; // Proceed to content check
+  }
+}
+
+async function checkHandleWithContentAnalysis(url: string, notFoundText: string[]): Promise<boolean> {
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'User-Agent': DEFAULT_USER_AGENT
+      }
+    });
+    
+    const html = await response.text();
+    
+    // Check if any of the not found text patterns are present
+    const isAvailable = notFoundText.some(text => html.includes(text));
+    
+    console.log(`Content analysis for ${url}: Handle ${isAvailable ? 'available' : 'unavailable'}`);
+    return isAvailable;
+    
+  } catch (error) {
+    console.error(`Error during content analysis for ${url}:`, error);
+    return false; // Default to unavailable on error
+  }
+}
+
 async function checkHandleAvailability(handle: string, platform: string): Promise<'available' | 'unavailable'> {
-  const platformStrategy = platformStrategies[platform];
+  const platformConfig = PLATFORMS[platform];
   
-  if (!platformStrategy) {
+  if (!platformConfig) {
     console.log(`Unsupported platform: ${platform}`);
     return 'unavailable';
   }
 
+  const url = `${platformConfig.url}${platform === 'tiktok' ? '@' : ''}${handle}`;
+  console.log(`Checking handle availability for ${url}`);
+
   try {
-    console.log(`Checking ${platform} handle: ${handle}`);
-    const status = await platformStrategy(handle);
-    console.log(`Response status for ${handle} on ${platform}: ${status}`);
-    return status;
+    // Step 1: Try HEAD request first
+    const headResult = await checkHandleWithHeadRequest(url);
+    
+    if (headResult !== null) {
+      return headResult ? 'available' : 'unavailable';
+    }
+    
+    // Step 2: Fallback to content analysis
+    const contentResult = await checkHandleWithContentAnalysis(url, platformConfig.notFoundText);
+    return contentResult ? 'available' : 'unavailable';
+    
   } catch (err) {
     console.error(`Error checking ${platform} handle ${handle}:`, err);
     return 'unavailable'; // Default to unavailable on error
