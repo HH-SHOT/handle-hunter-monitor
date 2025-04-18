@@ -119,7 +119,7 @@ const HandleDashboard = () => {
   // Helper function to convert status string to our type
   const convertToStatusType = (status: string): 'available' | 'unavailable' | 'monitoring' => {
     if (status === 'available' || status === 'unavailable' || status === 'monitoring') {
-      return status;
+      return status as 'available' | 'unavailable' | 'monitoring';
     }
     return 'monitoring'; // Default fallback
   };

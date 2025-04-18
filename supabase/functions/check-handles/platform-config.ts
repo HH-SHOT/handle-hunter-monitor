@@ -15,15 +15,26 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
   },
   instagram: {
     url: "https://www.instagram.com/",
-    notFoundText: ["Sorry, this page isn't available.", "The link you followed may be broken"],
+    notFoundText: [
+      "Sorry, this page isn't available.",
+      "The link you followed may be broken",
+      "Page not found"
+    ],
   },
   facebook: {
     url: "https://www.facebook.com/",
-    notFoundText: ["This content isn't available right now", "The link may be broken"],
+    notFoundText: [
+      "This content isn't available right now",
+      "The link may be broken",
+      "This page isn't available"
+    ],
   },
   tiktok: {
     url: "https://www.tiktok.com/@",
-    notFoundText: ["Couldn't find this account", "This account is not available"],
+    notFoundText: [
+      "Couldn't find this account",
+      "This account is not available",
+      "User not found"
+    ],
   },
 };
-

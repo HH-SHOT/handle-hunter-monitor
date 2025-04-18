@@ -40,7 +40,13 @@ export async function checkHandleWithContentAnalysis(url: string, notFoundText: 
     const html = await response.text();
     
     // Check if any of the not found text patterns are present
-    const isAvailable = notFoundText.some(text => html.includes(text));
+    const isAvailable = notFoundText.some(text => {
+      const found = html.includes(text);
+      if (found) {
+        console.log(`Found indicator text: "${text}" on ${url}`);
+      }
+      return found;
+    });
     
     console.log(`Content analysis for ${url}: Handle ${isAvailable ? 'available' : 'unavailable'}`);
     return isAvailable;
@@ -52,7 +58,12 @@ export async function checkHandleWithContentAnalysis(url: string, notFoundText: 
 }
 
 export async function checkHandleAvailability(handle: string, platform: string, platformConfig: PlatformConfig): Promise<'available' | 'unavailable'> {
-  const url = `${platformConfig.url}${platform === 'tiktok' ? '@' : ''}${handle}`;
+  let url = platformConfig.url + handle;
+  // For TikTok specifically, make sure the @ symbol is present but not duplicated
+  if (platform === 'tiktok' && !url.includes('@')) {
+    url = platformConfig.url + handle;
+  }
+  
   console.log(`Checking handle availability for ${url}`);
 
   try {
@@ -72,4 +83,3 @@ export async function checkHandleAvailability(handle: string, platform: string, 
     return 'unavailable'; // Default to unavailable on error
   }
 }
-
