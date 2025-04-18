@@ -7,7 +7,11 @@ export interface PlatformConfig {
 export const PLATFORMS: Record<string, PlatformConfig> = {
   twitter: {
     url: "https://twitter.com/",
-    notFoundText: ["This account doesn't exist", "This profile doesn't exist"],
+    notFoundText: [
+      "This account doesn't exist",
+      "This profile doesn't exist",
+      "This account doesn't exist,Try searching for another."
+    ],
   },
   instagram: {
     url: "https://www.instagram.com/",
