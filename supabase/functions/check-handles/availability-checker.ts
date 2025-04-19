@@ -5,12 +5,15 @@ const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKi
 
 export async function checkHandleWithHeadRequest(url: string): Promise<boolean | null> {
   try {
+    console.log(`Sending HEAD request to ${url}`);
     const response = await fetch(url, {
       method: 'HEAD',
       headers: {
         'User-Agent': DEFAULT_USER_AGENT
       }
     });
+    
+    console.log(`HEAD request to ${url} returned status: ${response.status}`);
     
     if (response.status === 404) {
       console.log(`HEAD request to ${url} returned 404 - handle likely available`);
@@ -35,9 +38,13 @@ export async function checkHandleWithContentAnalysis(url: string, notFoundText: 
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'User-Agent': DEFAULT_USER_AGENT
-      }
+        'User-Agent': DEFAULT_USER_AGENT,
+        'Accept': 'text/html,application/xhtml+xml,application/xml'
+      },
+      redirect: 'follow'
     });
+    
+    console.log(`GET request to ${url} returned status: ${response.status}`);
     
     if (!response.ok) {
       console.log(`Response not OK (${response.status}) for ${url}, might indicate availability`);
@@ -51,45 +58,62 @@ export async function checkHandleWithContentAnalysis(url: string, notFoundText: 
     const html = await response.text();
     console.log(`Got HTML content for ${url} (length: ${html.length})`);
     
-    // Enhanced logging: Log a sample of the HTML to check what we're getting
-    console.log(`Sample HTML: ${html.substring(0, 200)}...`);
+    // Log a sample of the HTML for debugging
+    console.log(`Sample HTML (first 300 chars): ${html.substring(0, 300)}...`);
     
     // Check if any of the not found text patterns are present
-    const isAvailable = notFoundText.some(text => {
-      const found = html.includes(text);
-      if (found) {
+    for (const text of notFoundText) {
+      if (html.includes(text)) {
         console.log(`Found indicator text: "${text}" on ${url} - handle is available`);
+        return true;
       }
-      return found;
-    });
-    
-    if (!isAvailable) {
-      console.log(`None of the indicator patterns found in content for ${url} - handle is unavailable`);
     }
     
-    console.log(`Content analysis for ${url}: Handle ${isAvailable ? 'available' : 'unavailable'}`);
-    return isAvailable;
+    // Additional checks for 404-like content
+    const lowerHtml = html.toLowerCase();
+    if (
+      lowerHtml.includes("404") && 
+      (lowerHtml.includes("not found") || lowerHtml.includes("doesn't exist") || lowerHtml.includes("page not found"))
+    ) {
+      console.log(`Found 404-like content on ${url} - handle is available`);
+      return true;
+    }
+    
+    // Check for empty profiles or error pages
+    if (
+      (lowerHtml.includes("error") && lowerHtml.includes("page")) ||
+      (lowerHtml.includes("not available") && lowerHtml.includes("account"))
+    ) {
+      console.log(`Found error or unavailable account indicators on ${url} - handle is available`);
+      return true;
+    }
+    
+    console.log(`None of the indicator patterns found in content for ${url} - handle is unavailable`);
+    return false;
     
   } catch (error) {
     console.error(`Error during content analysis for ${url}:`, error);
-    return false; // Default to unavailable on error
+    // If we can't access the page at all, it might be an indication that the handle could be available
+    console.log(`Exception during fetch might indicate handle is available`);
+    return true;
   }
 }
 
 export async function checkHandleAvailability(handle: string, platform: string, platformConfig: PlatformConfig): Promise<'available' | 'unavailable'> {
+  // Clean the handle - remove @ if present
+  const cleanHandle = handle.startsWith('@') ? handle.substring(1) : handle;
+  console.log(`Checking handle availability for "${cleanHandle}" on platform ${platform}`);
+
   // Construct the URL correctly based on platform
-  let url = platformConfig.url + handle;
-  
-  // For TikTok specifically, ensure @ is present but not duplicated
+  let url = '';
   if (platform === 'tiktok') {
-    if (handle.startsWith('@')) {
-      url = platformConfig.url + handle.substring(1); // Remove @ from handle if it already has one
-    } else {
-      // The URL already includes @ in the config
-    }
+    // TikTok already has @ in the URL format
+    url = platformConfig.url + cleanHandle;
+  } else {
+    url = platformConfig.url + cleanHandle;
   }
   
-  console.log(`Checking handle availability for ${url} on platform ${platform}`);
+  console.log(`Constructed URL for checking: ${url}`);
 
   try {
     // Step 1: Try HEAD request first for faster checking
@@ -112,6 +136,7 @@ export async function checkHandleAvailability(handle: string, platform: string, 
     
   } catch (err) {
     console.error(`Error checking ${platform} handle ${handle}:`, err);
-    return 'unavailable'; // Default to unavailable on error
+    // If we're getting errors, we'll assume it's unavailable to be safe
+    return 'unavailable';
   }
 }

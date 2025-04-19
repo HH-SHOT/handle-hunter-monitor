@@ -10,7 +10,11 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
     notFoundText: [
       "This account doesn't exist",
       "This profile doesn't exist",
-      "This account doesn't exist,Try searching for another."
+      "This account doesn't exist,Try searching for another.",
+      "User not found",
+      "Page not found",
+      "Hmm...this page doesn't exist",
+      "Something went wrong"
     ],
   },
   instagram: {
@@ -18,7 +22,9 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
     notFoundText: [
       "Sorry, this page isn't available.",
       "The link you followed may be broken",
-      "Page not found"
+      "Page not found",
+      "User not found",
+      "The page may have been removed"
     ],
   },
   facebook: {
@@ -26,6 +32,9 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
     notFoundText: [
       "This content isn't available right now",
       "The link may be broken",
+      "This page isn't available",
+      "Page not found",
+      "Page not available",
       "This page isn't available"
     ],
   },
@@ -34,7 +43,10 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
     notFoundText: [
       "Couldn't find this account",
       "This account is not available",
-      "User not found"
+      "User not found",
+      "404",
+      "Page not found",
+      "Couldn't find this account"
     ],
   },
 };

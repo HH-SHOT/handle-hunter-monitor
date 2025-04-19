@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
@@ -313,6 +312,8 @@ const HandleDashboard = () => {
     }
     
     try {
+      console.log("Deleting handle:", handleToDelete.id);
+      
       // First delete associated history records to avoid foreign key constraint errors
       const { error: historyError } = await supabase
         .from('handle_history')
@@ -321,6 +322,7 @@ const HandleDashboard = () => {
       
       if (historyError) {
         console.error('Error deleting handle history:', historyError);
+        // Continue with handle deletion even if history deletion fails
       }
       
       // Then delete the handle itself
@@ -329,9 +331,13 @@ const HandleDashboard = () => {
         .delete()
         .eq('id', handleToDelete.id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error in delete operation:', error);
+        throw error;
+      }
       
-      setHandles(handles.filter(h => h.id !== handleToDelete.id));
+      // Update local state after successful deletion
+      setHandles(prevHandles => prevHandles.filter(h => h.id !== handleToDelete.id));
       
       toast({
         title: "Handle removed",
@@ -341,7 +347,7 @@ const HandleDashboard = () => {
       console.error('Error deleting handle:', error);
       toast({
         title: "Error removing handle",
-        description: "There was a problem removing this handle.",
+        description: "There was a problem removing this handle. Please try again.",
         variant: "destructive"
       });
     }

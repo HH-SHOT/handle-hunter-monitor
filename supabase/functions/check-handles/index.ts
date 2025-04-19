@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
 import { PLATFORMS } from './platform-config.ts';
@@ -16,6 +17,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Check Handles function invoked");
+    
     // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -23,6 +26,7 @@ serve(async (req) => {
     );
 
     const { refresh, handleId, scheduled } = await req.json();
+    console.log(`Request params: refresh=${refresh}, handleId=${handleId}, scheduled=${scheduled}`);
     
     // Handle scheduled checks (runs every 5 minutes)
     if (scheduled) {
