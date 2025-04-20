@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -31,11 +30,11 @@ const Navbar = () => {
           <span className="text-xl font-bold bg-gradient-to-r from-brand-blue to-brand-purple bg-clip-text text-transparent">HandleHunter</span>
         </Link>
 
-        {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-8">
           <Link to="/" className="text-gray-700 hover:text-brand-blue transition-colors">Home</Link>
           <Link to="/features" className="text-gray-700 hover:text-brand-blue transition-colors">Features</Link>
           <Link to="/pricing" className="text-gray-700 hover:text-brand-blue transition-colors">Pricing</Link>
+          <Link to="/contact" className="text-gray-700 hover:text-brand-blue transition-colors">Contact</Link>
           {user && (
             <Link to="/dashboard" className="text-gray-700 hover:text-brand-blue transition-colors">Dashboard</Link>
           )}
@@ -76,19 +75,18 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* Mobile Menu Button */}
         <button onClick={toggleMenu} className="md:hidden text-gray-700">
           {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
-      {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="md:hidden bg-white p-4 shadow-lg absolute top-16 left-0 right-0">
           <div className="flex flex-col space-y-4">
             <Link to="/" className="text-gray-700 hover:text-brand-blue transition-colors py-2">Home</Link>
             <Link to="/features" className="text-gray-700 hover:text-brand-blue transition-colors py-2">Features</Link>
             <Link to="/pricing" className="text-gray-700 hover:text-brand-blue transition-colors py-2">Pricing</Link>
+            <Link to="/contact" className="text-gray-700 hover:text-brand-blue transition-colors py-2">Contact</Link>
             {user && (
               <Link to="/dashboard" className="text-gray-700 hover:text-brand-blue transition-colors py-2">Dashboard</Link>
             )}

@@ -1,26 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { 
-  RefreshCw, 
-  PlusCircle,
-  Bell,
-  BellOff,
-  Trash2,
-  Search,
-  Filter
-} from 'lucide-react';
-import { Handle, HandleFormData, DbHandle } from './types';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from '@/integrations/supabase/client';
-import HandleList from './HandleList';
-import AddHandleForm from './AddHandleForm';
-import { Separator } from '@/components/ui/separator';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { mockHandles } from './mockHandles';
-import HandleDashboardControls from './dashboard/HandleDashboardControls';
-import HandleNotificationSettings from './dashboard/HandleNotificationSettings';
-import { formatHandlesFromDb, convertToPlatformType, convertToStatusType } from './handleUtils';
+import { supabase } from "@/integrations/supabase/client";
+import { mockHandles } from "./mockHandles";
+import { formatHandlesFromDb, convertToPlatformType, convertToStatusType } from "./handleUtils";
+import HandleDashboardControls from "./dashboard/HandleDashboardControls";
+import HandleNotificationSettings from "./dashboard/HandleNotificationSettings";
+import HandleTable from "./dashboard/HandleTable";
+import HandleActionBar from "./dashboard/HandleActionBar";
+import AddHandleForm from "./AddHandleForm";
+import { Handle, HandleFormData } from "./types";
 
 // Validation functions
 const validateHandles = (handles: Handle[]): string | null => {
@@ -48,57 +37,126 @@ const HandleDashboard = () => {
   const { user } = useAuth();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [selectedHandle, setSelectedHandle] = useState<HandleFormData>({
-    name: '',
-    platform: 'twitter'
-  });
+  const [selectedHandle, setSelectedHandle] = useState<HandleFormData>({ name: "", platform: "twitter" });
+  // -- REFACTOR: manage handles and usageCount for dashboard's account tab --
   const [handles, setHandles] = useState<Handle[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshingHandles, setRefreshingHandles] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [platformFilter, setPlatformFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [email, setEmail] = useState(user?.email || '');
+  const [email, setEmail] = useState(user?.email || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [errors, setErrors] = useState<{
-    handles: string | null;
-    email: string | null;
-  }>({
-    handles: null,
-    email: null,
-  });
+  const [errors, setErrors] = useState({ handles: null as string | null, email: null as string | null });
+  const [isClearing, setIsClearing] = useState(false);
+  const [canUndo, setCanUndo] = useState(false);
+  const [deletedHandlesBackup, setDeletedHandlesBackup] = useState<Handle[]>([]);
+  // Usage count for account tab
+  const [usageCount, setUsageCount] = useState<number>(0);
 
   useEffect(() => {
     if (user) {
       fetchHandles();
     } else {
-      setHandles(mockHandles as any); // We'll fix type for demo mock below
+      setHandles(mockHandles as Handle[]);
       setLoading(false);
     }
   }, [user]);
 
   const fetchHandles = async () => {
+    setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('handles')
-        .select('*')
-        .eq('user_id', user?.id);
-      
+        .from("handles")
+        .select("*")
+        .eq("user_id", user?.id);
       if (error) throw error;
-
-      const formattedHandles = formatHandlesFromDb(data);      
+      const formattedHandles = formatHandlesFromDb(data);
       setHandles(formattedHandles.length > 0 ? formattedHandles : formatHandlesFromDb(mockHandles as any));
+      setUsageCount(formattedHandles.length);
     } catch (error) {
-      console.error('Error fetching handles:', error);
+      console.error("Error fetching handles:", error);
+      setUsageCount(0);
       toast({
         title: "Error fetching handles",
         description: "There was a problem loading your handles.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  // --- Clear All Handles with Undo ---
+  const handleClearAll = async () => {
+    setIsClearing(true);
+    setDeletedHandlesBackup(handles);
+    let success = false;
+    if (!user) {
+      // Demo mode clear
+      setHandles([]);
+      setUsageCount(0);
+      success = true;
+    } else {
+      try {
+        // Delete all handles for this user
+        const { error } = await supabase.from("handles").delete().eq("user_id", user.id);
+        if (error) throw error;
+        setHandles([]);
+        setUsageCount(0);
+        success = true;
+      } catch (error) {
+        toast({
+          title: "Clear failed",
+          description: "Could not remove all handles.",
+          variant: "destructive",
+        });
+      }
+    }
+    setIsClearing(false);
+    if (success) {
+      setCanUndo(true);
+      toast({
+        title: "Handles removed",
+        description: "All handles deleted. Undo?",
+        variant: "default",
+        action: {
+          label: "Undo",
+          onClick: () => handleUndo(),
+        },
+        duration: 5000,
+      });
+      setTimeout(() => setCanUndo(false), 5000);
+    }
+  };
+
+  // --- Undo Clear All ---
+  const handleUndo = async () => {
+    if (!deletedHandlesBackup.length) return;
+    if (!user) {
+      setHandles(deletedHandlesBackup);
+      setUsageCount(deletedHandlesBackup.length);
+    } else {
+      // Re-insert handles in Supabase
+      try {
+        const inserts = deletedHandlesBackup.map((h) => ({
+          ...h,
+          user_id: user.id,
+          notifications_enabled: h.notifications,
+          status: h.status,
+          last_checked: new Date().toISOString(),
+        }));
+        // Ignore id field for insertion so that Supabase will re-generate IDs (no primary key collision)
+        const { error } = await supabase.from("handles").insert(inserts.map(({ id, ...rest }) => rest));
+        if (error) throw error;
+        fetchHandles();
+      } catch (error) {
+        toast({ title: "Undo failed", description: "Could not restore handles.", variant: "destructive" });
+      }
+    }
+    setCanUndo(false);
+    setDeletedHandlesBackup([]);
   };
 
   const handleRefresh = async () => {
@@ -502,30 +560,51 @@ const HandleDashboard = () => {
         searchQuery={searchQuery}
         platformFilter={platformFilter}
         statusFilter={statusFilter}
-        onRefresh={handleRefresh}
-        onAddNew={handleAddNew}
-        onSearchChange={handleSearchChange}
-        onFilterChange={handleFilterChange}
-        onClearFilters={handleClearFilters}
+        onRefresh={fetchHandles}
+        onAddNew={() => {
+          setIsEditMode(false);
+          setSelectedHandle({ name: "", platform: "twitter" });
+          setIsFormOpen(true);
+        }}
+        onSearchChange={e => setSearchQuery(e.target.value)}
+        onFilterChange={(type, val) => {
+          if (type === "platform") setPlatformFilter(val);
+          if (type === "status") setStatusFilter(val);
+        }}
+        onClearFilters={() => {
+          setSearchQuery("");
+          setPlatformFilter(null);
+          setStatusFilter(null);
+        }}
       />
-
+      <HandleActionBar
+        onClearAll={handleClearAll}
+        isClearing={isClearing}
+        canUndo={canUndo}
+        onUndo={handleUndo}
+      />
       <div className="bg-white rounded-lg border shadow-sm p-6 mb-8">
         <div className="mb-4">
           {errors.handles && (
             <div className="text-red-500 text-sm mb-2">{errors.handles}</div>
           )}
         </div>
-        
-        <HandleList
-          handles={getFilteredHandles()}
+        <HandleTable
+          handles={handles.filter(handle => {
+            const q = searchQuery.toLowerCase();
+            return (
+              (!platformFilter || handle.platform === platformFilter) &&
+              (!statusFilter || handle.status === statusFilter) &&
+              handle.name.toLowerCase().includes(q)
+            );
+          })}
           loading={loading}
           refreshingHandles={refreshingHandles}
-          onDelete={handleDelete}
+          onDelete={handleDelete} // Fill in or refactor further as needed
           onEdit={handleEdit}
           onToggleNotifications={handleToggleNotifications}
           onCheckHandle={handleCheckSingleHandle}
         />
-
         <HandleNotificationSettings
           email={email}
           isSubmitting={isSubmitting}
@@ -535,12 +614,11 @@ const HandleDashboard = () => {
           onSubmit={handleSubmit}
         />
       </div>
-      
       <AddHandleForm
         isOpen={isFormOpen}
         isEdit={isEditMode}
         initialData={selectedHandle}
-        onClose={handleClose}
+        onClose={() => setIsFormOpen(false)}
         onSave={handleSaveHandle}
       />
     </div>

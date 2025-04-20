@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -51,11 +50,13 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState<SubscriptionWithPlan | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [handleUsage, setHandleUsage] = useState<number>(0);
 
   useEffect(() => {
     if (user) {
       fetchSubscriptionData(user.id);
       fetchHistoryData();
+      fetchHandleUsage();
     }
     setLoading(false);
   }, [user]);
@@ -113,6 +114,15 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Error fetching history:', error);
     }
+  };
+
+  const fetchHandleUsage = async () => {
+    if (!user) return setHandleUsage(0);
+    const { data, error } = await supabase
+      .from("handles")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user?.id);
+    setHandleUsage(data?.length || 0);
   };
 
   const handleSignOut = async () => {
@@ -271,7 +281,7 @@ const Dashboard = () => {
                         price: subscription?.plans?.price || 0,
                         handleLimit: subscription?.plans?.handle_limit || 3,
                         checkFrequency: subscription?.plans?.check_frequency || 'daily',
-                        usedHandles: 1 // This would need to be fetched from your database
+                        usedHandles: handleUsage
                       }}
                       onUpgrade={handleUpgrade}
                     />

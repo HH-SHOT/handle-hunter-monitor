@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
@@ -50,7 +49,7 @@ const plans = [
   }
 ];
 
-const PricingSection = () => {
+const PricingSection = ({ onGetStarted }: { onGetStarted?: () => void }) => {
   return (
     <section className="py-20 bg-brand-light">
       <div className="container mx-auto px-4">
@@ -79,9 +78,9 @@ const PricingSection = () => {
                   {plan.period && <span className="text-gray-500">{plan.period}</span>}
                 </div>
                 <p className="text-gray-600 mb-6">{plan.description}</p>
-                
                 <Button 
                   className={`w-full ${plan.popular ? 'bg-brand-blue hover:bg-brand-purple' : 'bg-gray-800 hover:bg-gray-700'} text-white`}
+                  onClick={onGetStarted}
                 >
                   {plan.cta}
                 </Button>

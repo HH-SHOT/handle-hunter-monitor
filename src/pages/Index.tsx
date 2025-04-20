@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -10,16 +9,31 @@ import CTASection from '@/components/CTASection';
 import DashboardDemo from '@/components/DashboardDemo';
 
 const Index = () => {
+  const navigate = useNavigate ? useNavigate() : null;
+  // Utility for navigation in the Hero section, landing, etc.
+  const handlePricing = () => {
+    if (navigate) navigate('/pricing');
+    else window.location.href = '/pricing';
+  };
+  const handleSignIn = () => {
+    if (navigate) navigate('/auth');
+    else window.location.href = '/auth';
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-grow">
-        <HeroSection />
+        <HeroSection 
+          onTryNow={handleSignIn}
+          onGetStarted={handleSignIn}
+          onViewPricing={handlePricing}
+        />
         <FeaturesSection />
         <DashboardDemo />
-        <PricingSection />
+        <PricingSection onGetStarted={handleSignIn} />
         <TestimonialsSection />
-        <CTASection />
+        <CTASection onGetStarted={handleSignIn} />
       </main>
       <Footer />
     </div>
