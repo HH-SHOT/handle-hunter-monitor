@@ -2,6 +2,7 @@
 export interface PlatformConfig {
   url: string;
   notFoundText: string[];
+  requiresAtSymbol?: boolean;
 }
 
 export const PLATFORMS: Record<string, PlatformConfig> = {
@@ -48,5 +49,6 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
       "Page not found",
       "Couldn't find this account"
     ],
+    requiresAtSymbol: true
   },
 };

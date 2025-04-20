@@ -41,6 +41,22 @@ const validateEmail = (email: string): string | null => {
   return null;
 };
 
+// Helper function to convert platform string to our type
+const convertToPlatformType = (platform: string): 'twitter' | 'instagram' | 'facebook' | 'tiktok' => {
+  if (platform === 'twitter' || platform === 'instagram' || platform === 'facebook' || platform === 'tiktok') {
+    return platform;
+  }
+  return 'twitter'; // Default fallback
+};
+
+// Helper function to convert status string to our type
+const convertToStatusType = (status: string): 'available' | 'unavailable' | 'monitoring' => {
+  if (status === 'available' || status === 'unavailable' || status === 'monitoring') {
+    return status as 'available' | 'unavailable' | 'monitoring';
+  }
+  return 'monitoring'; // Default fallback
+};
+
 const HandleDashboard = () => {
   const { user } = useAuth();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -94,6 +110,7 @@ const HandleDashboard = () => {
         notifications: handle.notifications_enabled !== null ? handle.notifications_enabled : true,
       }));
       
+      // Properly cast the array to Handle[]
       setHandles(formattedHandles.length > 0 ? formattedHandles : mockHandles);
       
     } catch (error) {
@@ -106,22 +123,6 @@ const HandleDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Helper function to convert platform string to our type
-  const convertToPlatformType = (platform: string): 'twitter' | 'instagram' | 'facebook' | 'tiktok' => {
-    if (platform === 'twitter' || platform === 'instagram' || platform === 'facebook' || platform === 'tiktok') {
-      return platform;
-    }
-    return 'twitter'; // Default fallback
-  };
-
-  // Helper function to convert status string to our type
-  const convertToStatusType = (status: string): 'available' | 'unavailable' | 'monitoring' => {
-    if (status === 'available' || status === 'unavailable' || status === 'monitoring') {
-      return status as 'available' | 'unavailable' | 'monitoring';
-    }
-    return 'monitoring'; // Default fallback
   };
 
   const handleRefresh = async () => {
