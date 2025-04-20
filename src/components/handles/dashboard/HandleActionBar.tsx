@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { trash_2, undo } from "lucide-react";
+import { Trash2, Undo } from "lucide-react";
 
 interface Props {
   onClearAll: () => void;
@@ -18,7 +18,7 @@ const HandleActionBar: React.FC<Props> = ({ onClearAll, isClearing, canUndo, onU
       disabled={isClearing}
       className="flex items-center gap-2"
     >
-      <trash_2 className="h-4 w-4" /> Clear All
+      <Trash2 className="h-4 w-4" /> Clear All
     </Button>
     {canUndo && (
       <Button
@@ -26,7 +26,7 @@ const HandleActionBar: React.FC<Props> = ({ onClearAll, isClearing, canUndo, onU
         onClick={onUndo}
         className="flex items-center gap-2"
       >
-        <undo className="h-4 w-4" /> Undo
+        <Undo className="h-4 w-4" /> Undo
       </Button>
     )}
   </div>

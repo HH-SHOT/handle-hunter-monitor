@@ -3,7 +3,7 @@ import React from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { contact } from "lucide-react";
+import { Mail } from "lucide-react";
 
 const Contact = () => {
   return (
@@ -12,7 +12,7 @@ const Contact = () => {
       <main className="flex-grow flex items-center justify-center bg-brand-light p-8">
         <div className="w-full max-w-lg bg-white rounded-lg shadow-lg border border-gray-200 p-8">
           <div className="flex items-center mb-4">
-            <contact className="w-6 h-6 text-brand-blue mr-2" />
+            <Mail className="w-6 h-6 text-brand-blue mr-2" />
             <h1 className="text-2xl font-bold">Contact Us</h1>
           </div>
           <p className="mb-8 text-gray-600">Have a question or feedback? Fill in the form below and we'll get back to you soon!</p>

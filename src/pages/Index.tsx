@@ -1,4 +1,6 @@
+
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import HeroSection from '@/components/HeroSection';
@@ -9,15 +11,15 @@ import CTASection from '@/components/CTASection';
 import DashboardDemo from '@/components/DashboardDemo';
 
 const Index = () => {
-  const navigate = useNavigate ? useNavigate() : null;
+  const navigate = useNavigate();
+  
   // Utility for navigation in the Hero section, landing, etc.
   const handlePricing = () => {
-    if (navigate) navigate('/pricing');
-    else window.location.href = '/pricing';
+    navigate('/pricing');
   };
+  
   const handleSignIn = () => {
-    if (navigate) navigate('/auth');
-    else window.location.href = '/auth';
+    navigate('/auth');
   };
 
   return (
