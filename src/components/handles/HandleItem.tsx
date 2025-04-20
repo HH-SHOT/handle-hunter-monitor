@@ -1,9 +1,9 @@
 
+
 import React from 'react';
 import { 
   Twitter, 
   Instagram, 
-  Facebook, 
   TrendingUp,
   Edit,
   Trash2,
@@ -24,6 +24,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+// Add Twitch logo import:
+import { Twitch } from 'lucide-react';
+
 interface HandleItemProps {
   handle: Handle;
   isRefreshing?: boolean;
@@ -39,8 +42,8 @@ const getPlatformIcon = (platform: string) => {
       return <Twitter className="h-4 w-4" />;
     case 'instagram':
       return <Instagram className="h-4 w-4" />;
-    case 'facebook':
-      return <Facebook className="h-4 w-4" />;
+    case 'twitch':
+      return <Twitch className="h-4 w-4" />; // <-- use Twitch icon
     case 'tiktok':
       return <TrendingUp className="h-4 w-4" />;
     default:

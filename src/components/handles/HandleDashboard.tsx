@@ -42,8 +42,8 @@ const validateEmail = (email: string): string | null => {
 };
 
 // Helper function to convert platform string to our type
-const convertToPlatformType = (platform: string): 'twitter' | 'instagram' | 'facebook' | 'tiktok' => {
-  if (platform === 'twitter' || platform === 'instagram' || platform === 'facebook' || platform === 'tiktok') {
+const convertToPlatformType = (platform: string): 'twitter' | 'instagram' | 'twitch' | 'tiktok' => {
+  if (platform === 'twitter' || platform === 'instagram' || platform === 'twitch' || platform === 'tiktok') {
     return platform;
   }
   return 'twitter'; // Default fallback
@@ -562,7 +562,7 @@ const HandleDashboard = () => {
               <option value="">All Platforms</option>
               <option value="twitter">Twitter</option>
               <option value="instagram">Instagram</option>
-              <option value="facebook">Facebook</option>
+              <option value="twitch">Twitch</option>
               <option value="tiktok">TikTok</option>
             </select>
             

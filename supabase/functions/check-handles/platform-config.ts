@@ -28,15 +28,15 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
       "The page may have been removed"
     ],
   },
-  facebook: {
-    url: "https://www.facebook.com/",
+  twitch: {
+    url: "https://www.twitch.tv/",
     notFoundText: [
-      "This content isn't available right now",
-      "The link may be broken",
-      "This page isn't available",
+      "This channel is currently unavailable.",
+      "Sorry. Unless you’ve got a time machine, that content is unavailable.",
+      "User not found",
       "Page not found",
-      "Page not available",
-      "This page isn't available"
+      "Channel not found",
+      "This page is no longer available"
     ],
   },
   tiktok: {
