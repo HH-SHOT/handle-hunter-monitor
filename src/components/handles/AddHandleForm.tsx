@@ -89,7 +89,7 @@ const AddHandleForm = ({
               >
                 <option value="twitter">Twitter</option>
                 <option value="instagram">Instagram</option>
-                <option value="facebook">Facebook</option>
+                <option value="twitch">Twitch</option>
                 <option value="tiktok">TikTok</option>
               </select>
             </div>
