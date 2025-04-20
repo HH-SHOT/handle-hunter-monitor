@@ -18,6 +18,9 @@ import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { mockHandles } from './mockHandles';
+import HandleDashboardControls from './dashboard/HandleDashboardControls';
+import HandleNotificationSettings from './dashboard/HandleNotificationSettings';
+import { formatHandlesFromDb, convertToPlatformType, convertToStatusType } from './handleUtils';
 
 // Validation functions
 const validateHandles = (handles: Handle[]): string | null => {
@@ -39,22 +42,6 @@ const validateEmail = (email: string): string | null => {
   }
   
   return null;
-};
-
-// Helper function to convert platform string to our type
-const convertToPlatformType = (platform: string): 'twitter' | 'instagram' | 'twitch' | 'tiktok' => {
-  if (platform === 'twitter' || platform === 'instagram' || platform === 'twitch' || platform === 'tiktok') {
-    return platform;
-  }
-  return 'twitter'; // Default fallback
-};
-
-// Helper function to convert status string to our type
-const convertToStatusType = (status: string): 'available' | 'unavailable' | 'monitoring' => {
-  if (status === 'available' || status === 'unavailable' || status === 'monitoring') {
-    return status as 'available' | 'unavailable' | 'monitoring';
-  }
-  return 'monitoring'; // Default fallback
 };
 
 const HandleDashboard = () => {
@@ -86,7 +73,7 @@ const HandleDashboard = () => {
     if (user) {
       fetchHandles();
     } else {
-      setHandles(mockHandles);
+      setHandles(mockHandles as any); // We'll fix type for demo mock below
       setLoading(false);
     }
   }, [user]);
@@ -99,20 +86,9 @@ const HandleDashboard = () => {
         .eq('user_id', user?.id);
       
       if (error) throw error;
-      
-      // Fix for the type error: explicitly cast status to the correct type
-      const formattedHandles: Handle[] = data.map((handle: DbHandle) => ({
-        id: handle.id,
-        name: handle.name,
-        platform: convertToPlatformType(handle.platform),
-        status: convertToStatusType(handle.status),
-        lastChecked: handle.last_checked ? new Date(handle.last_checked).toLocaleString() : 'never',
-        notifications: handle.notifications_enabled !== null ? handle.notifications_enabled : true,
-      }));
-      
-      // Properly cast the array to Handle[]
-      setHandles(formattedHandles.length > 0 ? formattedHandles : mockHandles);
-      
+
+      const formattedHandles = formatHandlesFromDb(data);      
+      setHandles(formattedHandles.length > 0 ? formattedHandles : formatHandlesFromDb(mockHandles as any));
     } catch (error) {
       console.error('Error fetching handles:', error);
       toast({
@@ -521,68 +497,19 @@ const HandleDashboard = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Your Handles</h2>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={handleRefresh}
-            disabled={loading}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            {loading ? 'Refreshing...' : 'Refresh All'}
-          </Button>
-          
-          <Button onClick={handleAddNew} className="flex items-center gap-2">
-            <PlusCircle className="h-4 w-4" />
-            Add Handle
-          </Button>
-        </div>
-      </div>
-      
+      <HandleDashboardControls
+        loading={loading}
+        searchQuery={searchQuery}
+        platformFilter={platformFilter}
+        statusFilter={statusFilter}
+        onRefresh={handleRefresh}
+        onAddNew={handleAddNew}
+        onSearchChange={handleSearchChange}
+        onFilterChange={handleFilterChange}
+        onClearFilters={handleClearFilters}
+      />
+
       <div className="bg-white rounded-lg border shadow-sm p-6 mb-8">
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input 
-              placeholder="Search handles..." 
-              className="pl-10"
-              value={searchQuery}
-              onChange={handleSearchChange}
-            />
-          </div>
-          
-          <div className="flex gap-2">
-            <select 
-              className="px-3 py-2 border rounded-md bg-white text-sm"
-              value={platformFilter || ''}
-              onChange={(e) => handleFilterChange('platform', e.target.value || null)}
-            >
-              <option value="">All Platforms</option>
-              <option value="twitter">Twitter</option>
-              <option value="instagram">Instagram</option>
-              <option value="twitch">Twitch</option>
-              <option value="tiktok">TikTok</option>
-            </select>
-            
-            <select 
-              className="px-3 py-2 border rounded-md bg-white text-sm"
-              value={statusFilter || ''}
-              onChange={(e) => handleFilterChange('status', e.target.value || null)}
-            >
-              <option value="">All Statuses</option>
-              <option value="available">Available</option>
-              <option value="unavailable">Unavailable</option>
-              <option value="monitoring">Monitoring</option>
-            </select>
-            
-            <Button variant="ghost" size="sm" onClick={handleClearFilters}>
-              Clear
-            </Button>
-          </div>
-        </div>
-        
         <div className="mb-4">
           {errors.handles && (
             <div className="text-red-500 text-sm mb-2">{errors.handles}</div>
@@ -598,39 +525,15 @@ const HandleDashboard = () => {
           onToggleNotifications={handleToggleNotifications}
           onCheckHandle={handleCheckSingleHandle}
         />
-        
-        <form onSubmit={handleSubmit} className="mt-6">
-          <div className="border-t pt-6">
-            <h3 className="font-medium mb-2">Notification Settings</h3>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <label htmlFor="email" className="block text-sm text-gray-600 mb-1">
-                  Email for notifications
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  className={errors.email ? "border-red-500" : ""}
-                />
-                {errors.email && (
-                  <div className="text-red-500 text-sm mt-1">{errors.email}</div>
-                )}
-              </div>
-              <div className="flex items-end">
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting || isSuccess}
-                  className="w-full sm:w-auto"
-                >
-                  {isSubmitting ? 'Saving...' : isSuccess ? 'Saved!' : 'Save Settings'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </form>
+
+        <HandleNotificationSettings
+          email={email}
+          isSubmitting={isSubmitting}
+          isSuccess={isSuccess}
+          error={errors.email}
+          onChange={setEmail}
+          onSubmit={handleSubmit}
+        />
       </div>
       
       <AddHandleForm

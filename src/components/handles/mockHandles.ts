@@ -20,8 +20,8 @@ export const mockHandles: Handle[] = [
   },
   {
     id: 'mock-3',
-    name: 'facebook_example',
-    platform: 'facebook',
+    name: 'twitch_example',
+    platform: 'twitch',
     status: 'available',
     lastChecked: '1 hour ago',
     notifications: false
