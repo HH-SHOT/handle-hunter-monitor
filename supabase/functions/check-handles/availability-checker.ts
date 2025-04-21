@@ -1,4 +1,3 @@
-
 import { PlatformConfig } from './platform-config.ts';
 
 // Bright Data proxy configuration
@@ -250,9 +249,9 @@ export async function checkHandleAvailability(handle: string, platform: string, 
   console.log(`Constructed URL for checking: ${url}`);
 
   try {
-    // Skip HEAD request for Instagram as it's less reliable
+    // Skip HEAD request for Instagram and Twitter as they're less reliable
     let headResult = null;
-    if (platform !== 'instagram') {
+    if (platform !== 'instagram' && platform !== 'twitter') {
       // Step 1: Try HEAD request first for faster checking
       headResult = await checkHandleWithHeadRequest(url);
       
@@ -264,7 +263,7 @@ export async function checkHandleAvailability(handle: string, platform: string, 
         return 'unavailable';
       }
     } else {
-      console.log(`Skipping HEAD request for Instagram handle ${handle}, proceeding directly to content analysis`);
+      console.log(`Skipping HEAD request for ${platform} handle ${handle}, proceeding directly to content analysis`);
     }
     
     // Step 2: Fallback to content analysis if HEAD request was inconclusive or skipped
