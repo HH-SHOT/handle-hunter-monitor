@@ -43,10 +43,13 @@ export async function checkHandleWithContentAnalysis(url: string, notFoundText: 
     const html = await response.text();
     console.log(`Got HTML content for ${url} (length: ${html.length})`);
     
+    // Print a sample of the HTML content to debug
+    console.log(`HTML content sample: ${html.substring(0, 500)}...`);
+    
     return analyzeContent(html, url, notFoundText);
   } catch (error) {
     console.error(`Error during content analysis for ${url}:`, error);
-    return true; // If all attempts fail, it's safer to assume the handle might be available
+    return false; // Changed to false: If there's an error, assume the handle might be taken to avoid false positives
   }
 }
 
