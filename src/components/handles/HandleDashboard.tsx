@@ -6,14 +6,13 @@ import HandleList from './HandleList';
 import AddHandleForm from './AddHandleForm';
 import { mockHandles } from './mockHandles';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Handle, HandleStatus } from './types';
+import { Handle, HandleFormData, HandleStatus } from './types';
 import HandleActionBar from './dashboard/HandleActionBar';
 import HandleDashboardControls from './dashboard/HandleDashboardControls';
 import HandleTable from './dashboard/HandleTable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getUniquePlatforms, filterHandlesByPlatform, getHandleStatusCounts } from './handleUtils';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * The main dashboard component for handle management.
@@ -64,7 +63,16 @@ const HandleDashboard: React.FC = () => {
   }, [handles, searchTerm, selectedPlatform, selectedStatuses]);
 
   // Handlers
-  const handleAddHandle = (newHandle: Handle) => {
+  const handleAddHandle = (formData: HandleFormData) => {
+    const newHandle: Handle = {
+      id: formData.id || uuidv4(),
+      name: formData.name,
+      platform: formData.platform,
+      status: 'monitoring',
+      lastChecked: 'never',
+      notifications: true
+    };
+    
     setHandles([...handles, newHandle]);
     setShowAddHandleDialog(false);
     toast({
@@ -73,21 +81,18 @@ const HandleDashboard: React.FC = () => {
     });
   };
 
-  const handleDeleteHandle = (id: string) => {
-    const handleToDelete = handles.find((h) => h.id === id);
-    if (!handleToDelete) return;
-
-    setHandles(handles.filter((handle) => handle.id !== id));
+  const handleDeleteHandle = (handle: Handle) => {
+    setHandles(handles.filter((h) => h.id !== handle.id));
     toast({
       title: 'Handle Removed',
-      description: `@${handleToDelete.name} has been removed from monitoring.`,
+      description: `@${handle.name} has been removed from monitoring.`,
       action: (
         <Button
           onClick={async () => {
-            setHandles((prevHandles) => [...prevHandles, handleToDelete]);
+            setHandles((prevHandles) => [...prevHandles, handle]);
             toast({
               title: 'Handle Restored',
-              description: `@${handleToDelete.name} has been restored.`,
+              description: `@${handle.name} has been restored.`,
             });
           }}
         >
@@ -145,7 +150,7 @@ const HandleDashboard: React.FC = () => {
     // Simulate refreshing by updating the lastChecked time
     const updatedHandles = handles.map(handle => ({
       ...handle,
-      lastChecked: new Date().toISOString()
+      lastChecked: new Date().toLocaleString()
     }));
     
     setHandles(updatedHandles as Handle[]);
@@ -156,9 +161,9 @@ const HandleDashboard: React.FC = () => {
     });
   };
 
-  const handleToggleNotifications = (id: string) => {
-    const updatedHandles = handles.map(handle => 
-      handle.id === id ? { ...handle, notifications: !handle.notifications } : handle
+  const handleToggleNotifications = (handle: Handle) => {
+    const updatedHandles = handles.map(h => 
+      h.id === handle.id ? { ...h, notifications: !h.notifications } : h
     );
     setHandles(updatedHandles);
   };
@@ -282,7 +287,7 @@ const HandleDashboard: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Add New Handle</DialogTitle>
           </DialogHeader>
-          <AddHandleForm onAddHandle={handleAddHandle} />
+          <AddHandleForm onSave={handleAddHandle} />
         </DialogContent>
       </Dialog>
       

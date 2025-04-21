@@ -26,3 +26,10 @@ export interface DbHandle {
   created_at: string;
   user_id: string;
 }
+
+export interface HandleStatusCounts {
+  available: number;
+  unavailable: number;
+  monitoring: number;
+  total: number;
+}

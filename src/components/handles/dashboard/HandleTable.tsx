@@ -73,7 +73,7 @@ const HandleTable: React.FC<HandleTableProps> = ({
                 </span>
               </TableCell>
               <TableCell>
-                {refreshingHandles.includes(handle.id) ? (
+                {refreshingHandles?.includes(handle.id) ? (
                   <span className="flex items-center">
                     <RefreshCw className="h-3 w-3 animate-spin mr-2" />
                     Checking...
@@ -98,9 +98,9 @@ const HandleTable: React.FC<HandleTableProps> = ({
                       variant="ghost" 
                       size="sm" 
                       onClick={() => onCheckHandle(handle)}
-                      disabled={refreshingHandles.includes(handle.id)}
+                      disabled={refreshingHandles?.includes(handle.id)}
                     >
-                      <RefreshCw className={`h-4 w-4 ${refreshingHandles.includes(handle.id) ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`h-4 w-4 ${refreshingHandles?.includes(handle.id) ? 'animate-spin' : ''}`} />
                     </Button>
                   )}
                   {onEdit && (
