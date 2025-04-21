@@ -26,16 +26,12 @@ const Index = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-grow">
-        <HeroSection 
-          onTryNow={handleSignIn}
-          onGetStarted={handleSignIn}
-          onViewPricing={handlePricing}
-        />
+        <HeroSection />
         <FeaturesSection />
         <DashboardDemo />
-        <PricingSection onGetStarted={handleSignIn} />
+        <PricingSection />
         <TestimonialsSection />
-        <CTASection onGetStarted={handleSignIn} />
+        <CTASection />
       </main>
       <Footer />
     </div>

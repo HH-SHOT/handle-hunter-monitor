@@ -1,25 +1,31 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 const CTASection = () => {
+  const navigate = useNavigate();
+  
+  const handleGetStarted = () => {
+    navigate('/auth');
+  };
+  
   return (
-    <section className="py-20 bg-gradient-to-br from-brand-blue to-brand-purple text-white">
+    <div className="py-16 bg-gradient-to-r from-brand-blue to-brand-purple">
       <div className="container mx-auto px-4 text-center">
-        <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Secure Your Social Media Presence?</h2>
-        <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8">
-          Start monitoring your desired handles today and never miss an opportunity to claim the perfect username again.
+        <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Ready to Secure Your Perfect Handle?</h2>
+        <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
+          Start monitoring your desired usernames today and never miss out on the perfect handle again.
         </p>
-        <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-          <Button className="bg-white text-brand-blue hover:bg-brand-light hover:text-brand-purple text-lg px-8 py-6">
-            Get Started for Free
-          </Button>
-          <Button variant="outline" className="border-white text-white hover:bg-white/20 text-lg px-8 py-6">
-            View Demo
-          </Button>
-        </div>
+        <Button 
+          size="lg" 
+          className="bg-white text-brand-blue hover:bg-gray-100 px-8 py-6 text-lg"
+          onClick={handleGetStarted}
+        >
+          Get Started Now
+        </Button>
       </div>
-    </section>
+    </div>
   );
 };
 

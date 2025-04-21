@@ -2,8 +2,19 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const HeroSection = () => {
+  const navigate = useNavigate();
+  
+  const handleGetStarted = () => {
+    navigate('/auth');
+  };
+  
+  const handleViewPricing = () => {
+    navigate('/pricing');
+  };
+  
   return (
     <div className="pt-24 pb-16 md:pt-32 md:pb-24 bg-gradient-to-br from-brand-light via-white to-brand-light">
       <div className="container mx-auto px-4">
@@ -16,10 +27,17 @@ const HeroSection = () => {
               Track and secure the perfect username across platforms. Get notified instantly when your desired handles become available.
             </p>
             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-              <Button className="bg-brand-blue hover:bg-brand-purple text-white px-8 py-6 text-lg">
+              <Button 
+                className="bg-brand-blue hover:bg-brand-purple text-white px-8 py-6 text-lg"
+                onClick={handleGetStarted}
+              >
                 Get Started Free
               </Button>
-              <Button variant="outline" className="group border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white px-8 py-6 text-lg">
+              <Button 
+                variant="outline" 
+                className="group border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white px-8 py-6 text-lg"
+                onClick={handleViewPricing}
+              >
                 See How It Works
                 <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </Button>
@@ -72,7 +90,10 @@ const HeroSection = () => {
                   </div>
                   
                   <div className="pt-3">
-                    <Button className="w-full bg-brand-blue hover:bg-brand-purple text-white py-5">
+                    <Button 
+                      className="w-full bg-brand-blue hover:bg-brand-purple text-white py-5"
+                      onClick={handleGetStarted}
+                    >
                       Add Handle to Monitor
                     </Button>
                   </div>

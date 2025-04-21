@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -10,6 +11,7 @@ import HandleTable from "./dashboard/HandleTable";
 import HandleActionBar from "./dashboard/HandleActionBar";
 import AddHandleForm from "./AddHandleForm";
 import { Handle, HandleFormData } from "./types";
+import { ToastAction } from "@/components/ui/toast";
 
 // Validation functions
 const validateHandles = (handles: Handle[]): string | null => {
@@ -121,10 +123,11 @@ const HandleDashboard = () => {
         title: "Handles removed",
         description: "All handles deleted. Undo?",
         variant: "default",
-        action: {
-          label: "Undo",
-          onClick: () => handleUndo(),
-        },
+        action: (
+          <ToastAction onClick={() => handleUndo()}>
+            Undo
+          </ToastAction>
+        ),
         duration: 5000,
       });
       setTimeout(() => setCanUndo(false), 5000);
@@ -426,7 +429,7 @@ const HandleDashboard = () => {
           h.id === data.id ? { ...h, name: data.name, platform: data.platform } : h
         ));
       } else {
-        // Add new handle
+        // Add new handle with proper typing
         const newHandle: Handle = {
           id: `mock-${Date.now()}`,
           name: data.name,
@@ -600,7 +603,7 @@ const HandleDashboard = () => {
           })}
           loading={loading}
           refreshingHandles={refreshingHandles}
-          onDelete={handleDelete} // Fill in or refactor further as needed
+          onDelete={handleDelete}
           onEdit={handleEdit}
           onToggleNotifications={handleToggleNotifications}
           onCheckHandle={handleCheckSingleHandle}
