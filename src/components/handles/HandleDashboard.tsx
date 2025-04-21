@@ -16,12 +16,48 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { RefreshCw } from 'lucide-react';
 
+// Sample handles for demo mode (when user is not signed in)
+const demoHandles: Handle[] = [
+  {
+    id: '1',
+    name: 'twitter_demo',
+    platform: 'twitter',
+    status: 'available',
+    lastChecked: '2023-04-20 10:30:45',
+    notifications: true
+  },
+  {
+    id: '2',
+    name: 'instagram_handle',
+    platform: 'instagram',
+    status: 'unavailable',
+    lastChecked: '2023-04-20 11:15:22',
+    notifications: true
+  },
+  {
+    id: '3',
+    name: 'twitch_gaming',
+    platform: 'twitch',
+    status: 'monitoring',
+    lastChecked: '2023-04-20 09:45:12',
+    notifications: false
+  },
+  {
+    id: '4',
+    name: 'tiktok_creator',
+    platform: 'tiktok',
+    status: 'unavailable',
+    lastChecked: '2023-04-20 14:22:18',
+    notifications: true
+  }
+];
+
 /**
  * The main dashboard component for handle management.
  */
 const HandleDashboard: React.FC = () => {
   // Auth context to get the current user
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   // State for handles and UI controls
   const [handles, setHandles] = useState<Handle[]>([]);
@@ -38,22 +74,31 @@ const HandleDashboard: React.FC = () => {
   const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
   const [lastDeletedHandles, setLastDeletedHandles] = useState<Handle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshingHandles, setRefreshingHandles] = useState<string[]>([]);
 
   // Fetch handles from Supabase when the component mounts or when the user changes
   useEffect(() => {
+    if (authLoading) return;
+    
     if (user) {
       fetchHandles();
+    } else {
+      // User is not signed in, use demo handles
+      setHandles(demoHandles);
+      setIsLoading(false);
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   // Fetch handles from Supabase
   const fetchHandles = async () => {
+    if (!user) return;
+    
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('handles')
         .select('*')
-        .eq('user_id', user?.id || '')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -147,7 +192,7 @@ const HandleDashboard: React.FC = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabase.auth.getSession()}`
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
           },
           body: JSON.stringify({ handleId: handleId })
         });
@@ -184,6 +229,14 @@ const HandleDashboard: React.FC = () => {
   };
 
   const handleDeleteHandle = async (handle: Handle) => {
+    if (!user) {
+      toast({
+        title: 'Demo Mode',
+        description: 'Delete operations are not available in demo mode. Please sign in.',
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('handles')
@@ -209,7 +262,7 @@ const HandleDashboard: React.FC = () => {
                     name: handle.name,
                     platform: handle.platform,
                     status: handle.status,
-                    user_id: user?.id || '',
+                    user_id: user.id,
                     notifications_enabled: handle.notifications
                   });
                 
@@ -262,10 +315,19 @@ const HandleDashboard: React.FC = () => {
   };
 
   const handleClearAll = () => {
+    if (!user) {
+      toast({
+        title: 'Demo Mode',
+        description: 'Clear all operation is not available in demo mode. Please sign in.',
+      });
+      return;
+    }
     setIsDeleteAllDialogOpen(true);
   };
 
   const confirmClearAll = async () => {
+    if (!user) return;
+    
     try {
       setLastDeletedHandles([...handles]);
       
@@ -273,7 +335,7 @@ const HandleDashboard: React.FC = () => {
       const { error } = await supabase
         .from('handles')
         .delete()
-        .eq('user_id', user?.id || '');
+        .eq('user_id', user.id);
       
       if (error) throw error;
       
@@ -293,7 +355,7 @@ const HandleDashboard: React.FC = () => {
                   name: h.name,
                   platform: h.platform,
                   status: h.status,
-                  user_id: user?.id || '',
+                  user_id: user.id,
                   notifications_enabled: h.notifications
                 }));
                 
@@ -335,6 +397,14 @@ const HandleDashboard: React.FC = () => {
   };
 
   const handleRefreshAll = async () => {
+    if (!user) {
+      toast({
+        title: 'Demo Mode',
+        description: 'Refresh operation is not available in demo mode. Please sign in.',
+      });
+      return;
+    }
+
     try {
       toast({
         title: 'Refreshing Handles',
@@ -346,7 +416,7 @@ const HandleDashboard: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.auth.getSession()}`
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
         },
         body: JSON.stringify({ refresh: true })
       });
@@ -372,7 +442,65 @@ const HandleDashboard: React.FC = () => {
     }
   };
 
+  const handleCheckHandle = async (handle: Handle) => {
+    if (!user) {
+      toast({
+        title: 'Demo Mode',
+        description: 'Check handle operation is not available in demo mode. Please sign in.',
+      });
+      return;
+    }
+
+    try {
+      // Add the handle ID to the refreshing list
+      setRefreshingHandles(prev => [...prev, handle.id]);
+      
+      // Call the check-handles edge function for a specific handle
+      const response = await fetch(`https://mausvzbzorurkcoruhev.supabase.co/functions/v1/check-handles`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        },
+        body: JSON.stringify({ handleId: handle.id })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to check handle');
+      }
+      
+      // Wait a moment to simulate the check
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Refetch the handles to get the updated data
+      await fetchHandles();
+      
+      toast({
+        title: 'Handle Checked',
+        description: `@${handle.name} has been checked for availability.`,
+      });
+    } catch (error) {
+      console.error('Error checking handle:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to check handle. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      // Remove the handle ID from the refreshing list
+      setRefreshingHandles(prev => prev.filter(id => id !== handle.id));
+    }
+  };
+
   const handleToggleNotifications = async (handle: Handle) => {
+    if (!user) {
+      toast({
+        title: 'Demo Mode',
+        description: 'Notification toggles are not available in demo mode. Please sign in.',
+      });
+      return;
+    }
+
     try {
       const newNotificationState = !handle.notifications;
       
@@ -403,7 +531,17 @@ const HandleDashboard: React.FC = () => {
     }
   };
 
-  // Loading state
+  // Auth or loading state
+  if (authLoading) {
+    return (
+      <div className="bg-background rounded-lg border shadow-sm p-4 sm:p-6 flex flex-col items-center justify-center min-h-[400px]">
+        <RefreshCw className="h-8 w-8 animate-spin text-brand-blue mb-4" />
+        <p className="text-muted-foreground">Loading authentication status...</p>
+      </div>
+    );
+  }
+
+  // Loading state for handles
   if (isLoading) {
     return (
       <div className="bg-background rounded-lg border shadow-sm p-4 sm:p-6 flex flex-col items-center justify-center min-h-[400px]">
@@ -419,6 +557,11 @@ const HandleDashboard: React.FC = () => {
         <h2 className="text-2xl font-bold mb-1">Handle Dashboard</h2>
         <p className="text-muted-foreground">
           Monitor and track your handles across different platforms.
+          {!user && (
+            <span className="block mt-2 text-amber-600 font-medium">
+              You are currently in demo mode. Sign in to track your own handles.
+            </span>
+          )}
         </p>
       </div>
       
@@ -466,12 +609,16 @@ const HandleDashboard: React.FC = () => {
                 handles={filteredHandles}
                 onDelete={handleDeleteHandle}
                 onToggleNotifications={handleToggleNotifications}
+                onCheckHandle={handleCheckHandle}
+                refreshingHandles={refreshingHandles}
               />
             ) : (
               <HandleTable
                 handles={filteredHandles}
                 onDelete={handleDeleteHandle}
                 onToggleNotifications={handleToggleNotifications}
+                onCheckHandle={handleCheckHandle}
+                refreshingHandles={refreshingHandles}
               />
             )}
           </TabsContent>
@@ -482,12 +629,16 @@ const HandleDashboard: React.FC = () => {
                 handles={filteredHandles.filter(h => h.status === 'available')}
                 onDelete={handleDeleteHandle}
                 onToggleNotifications={handleToggleNotifications}
+                onCheckHandle={handleCheckHandle}
+                refreshingHandles={refreshingHandles}
               />
             ) : (
               <HandleTable
                 handles={filteredHandles.filter(h => h.status === 'available')}
                 onDelete={handleDeleteHandle}
                 onToggleNotifications={handleToggleNotifications}
+                onCheckHandle={handleCheckHandle}
+                refreshingHandles={refreshingHandles}
               />
             )}
           </TabsContent>
@@ -498,12 +649,16 @@ const HandleDashboard: React.FC = () => {
                 handles={filteredHandles.filter(h => h.status === 'unavailable')}
                 onDelete={handleDeleteHandle}
                 onToggleNotifications={handleToggleNotifications}
+                onCheckHandle={handleCheckHandle}
+                refreshingHandles={refreshingHandles}
               />
             ) : (
               <HandleTable
                 handles={filteredHandles.filter(h => h.status === 'unavailable')}
                 onDelete={handleDeleteHandle}
                 onToggleNotifications={handleToggleNotifications}
+                onCheckHandle={handleCheckHandle}
+                refreshingHandles={refreshingHandles}
               />
             )}
           </TabsContent>
@@ -514,12 +669,16 @@ const HandleDashboard: React.FC = () => {
                 handles={filteredHandles.filter(h => h.status === 'monitoring')}
                 onDelete={handleDeleteHandle}
                 onToggleNotifications={handleToggleNotifications}
+                onCheckHandle={handleCheckHandle}
+                refreshingHandles={refreshingHandles}
               />
             ) : (
               <HandleTable
                 handles={filteredHandles.filter(h => h.status === 'monitoring')}
                 onDelete={handleDeleteHandle}
                 onToggleNotifications={handleToggleNotifications}
+                onCheckHandle={handleCheckHandle}
+                refreshingHandles={refreshingHandles}
               />
             )}
           </TabsContent>

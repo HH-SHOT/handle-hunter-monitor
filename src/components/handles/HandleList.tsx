@@ -2,8 +2,6 @@
 import React from 'react';
 import { Handle } from './types';
 import HandleItem from './HandleItem';
-import { Table, TableHeader, TableBody, TableHead, TableRow } from '@/components/ui/table';
-import { RefreshCw } from 'lucide-react';
 
 interface HandleListProps {
   handles: Handle[];
@@ -15,19 +13,19 @@ interface HandleListProps {
   onCheckHandle?: (handle: Handle) => void;
 }
 
-const HandleList = ({ 
-  handles, 
-  loading = false, 
-  refreshingHandles = [], 
-  onDelete, 
-  onEdit, 
+const HandleList: React.FC<HandleListProps> = ({
+  handles,
+  loading = false,
+  refreshingHandles = [],
+  onDelete,
+  onEdit,
   onToggleNotifications,
-  onCheckHandle 
-}: HandleListProps) => {
+  onCheckHandle,
+}) => {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-10">
-        <RefreshCw className="h-8 w-8 animate-spin text-brand-blue" />
+        <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
         <span className="ml-3 text-gray-600">Loading handles...</span>
       </div>
     );
@@ -42,31 +40,31 @@ const HandleList = ({
   }
 
   return (
-    <div className="overflow-x-auto -mx-6">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Handle</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Last Checked</TableHead>
-            <TableHead>Notifications</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse">
+        <thead>
+          <tr className="border-b">
+            <th className="text-left px-4 py-3 font-medium">Handle</th>
+            <th className="text-left px-4 py-3 font-medium">Status</th>
+            <th className="text-left px-4 py-3 font-medium">Last Checked</th>
+            <th className="text-left px-4 py-3 font-medium">Notifications</th>
+            <th className="text-right px-4 py-3 font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
           {handles.map(handle => (
             <HandleItem 
-              key={handle.id} 
-              handle={handle} 
-              isRefreshing={refreshingHandles?.includes(handle.id) || false}
-              onDelete={() => onDelete(handle)}
+              key={handle.id}
+              handle={handle}
               onEdit={onEdit ? () => onEdit(handle) : undefined}
+              onDelete={() => onDelete(handle)}
               onToggleNotifications={() => onToggleNotifications(handle)}
               onCheckHandle={onCheckHandle ? () => onCheckHandle(handle) : undefined}
+              isRefreshing={refreshingHandles?.includes(handle.id)}
             />
           ))}
-        </TableBody>
-      </Table>
+        </tbody>
+      </table>
     </div>
   );
 };

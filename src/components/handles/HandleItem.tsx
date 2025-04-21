@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { 
   Twitter, 
@@ -30,7 +29,7 @@ import { Twitch } from 'lucide-react';
 interface HandleItemProps {
   handle: Handle;
   isRefreshing?: boolean;
-  onEdit: (handle: Handle) => void;
+  onEdit?: (handle: Handle) => void;
   onDelete: (handle: Handle) => void;
   onToggleNotifications: (handle: Handle) => void;
   onCheckHandle?: (handle: Handle) => void;
@@ -43,7 +42,7 @@ const getPlatformIcon = (platform: string) => {
     case 'instagram':
       return <Instagram className="h-4 w-4" />;
     case 'twitch':
-      return <Twitch className="h-4 w-4" />; // <-- use Twitch icon
+      return <Twitch className="h-4 w-4" />; 
     case 'tiktok':
       return <TrendingUp className="h-4 w-4" />;
     default:
@@ -128,19 +127,26 @@ const HandleItem = ({
         </div>
       </td>
       <td className="px-4 py-3 text-sm text-gray-500">
-        {handle.lastChecked}
+        {isRefreshing ? (
+          <span className="flex items-center">
+            <RefreshCw className="h-3 w-3 animate-spin mr-2" />
+            Checking...
+          </span>
+        ) : (
+          handle.lastChecked
+        )}
       </td>
       <td className="px-4 py-3">
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onToggleNotifications(handle)}
+          onClick={onToggleNotifications}
           className={`${handle.notifications ? 'text-brand-blue' : 'text-gray-400'}`}
         >
           {handle.notifications ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
         </Button>
       </td>
-      <td className="px-4 py-3">
+      <td className="px-4 py-3 text-right">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm">
@@ -153,10 +159,18 @@ const HandleItem = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onEdit(handle)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </DropdownMenuItem>
+            {onEdit && (
+              <DropdownMenuItem onClick={() => onEdit(handle)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </DropdownMenuItem>
+            )}
+            {onCheckHandle && (
+              <DropdownMenuItem onClick={() => onCheckHandle(handle)} disabled={isRefreshing}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Check Now
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               className="text-red-600"
               onClick={() => onDelete(handle)}

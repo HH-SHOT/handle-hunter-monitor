@@ -4,6 +4,7 @@ import { Handle } from "../types";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Bell, BellOff, RefreshCw, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface HandleTableProps {
   handles: Handle[];
@@ -94,14 +95,23 @@ const HandleTable: React.FC<HandleTableProps> = ({
               <TableCell>
                 <div className="flex space-x-2">
                   {onCheckHandle && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => onCheckHandle(handle)}
-                      disabled={refreshingHandles?.includes(handle.id)}
-                    >
-                      <RefreshCw className={`h-4 w-4 ${refreshingHandles?.includes(handle.id) ? 'animate-spin' : ''}`} />
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => onCheckHandle(handle)}
+                            disabled={refreshingHandles?.includes(handle.id)}
+                          >
+                            <RefreshCw className={`h-4 w-4 ${refreshingHandles?.includes(handle.id) ? 'animate-spin' : ''}`} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Check availability now</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                   {onEdit && (
                     <Button variant="ghost" size="sm" onClick={() => onEdit(handle)}>
