@@ -6,7 +6,7 @@ import { CreditCard, CheckCircle2, ArrowUpRight, Clock } from 'lucide-react';
 import { upgradeToPlan } from "@/utils/planUtils";
 import { useAuth } from '@/contexts/AuthContext';
 
-interface SubscriptionTierProps {
+export interface SubscriptionTierProps {
   currentPlan: {
     name: string;
     price: number;
@@ -90,8 +90,8 @@ const SubscriptionTier: React.FC<SubscriptionTierProps> = ({
     }
   };
 
-  // Calculate usage percentage
-  const usagePercentage = currentPlan.usedHandles 
+  // Calculate usage percentage - safely handle undefined usedHandles
+  const usagePercentage = currentPlan.usedHandles !== undefined 
     ? Math.min(Math.round((currentPlan.usedHandles / currentPlan.handleLimit) * 100), 100) 
     : 0;
 
@@ -116,7 +116,7 @@ const SubscriptionTier: React.FC<SubscriptionTierProps> = ({
         </div>
       </div>
 
-      {/* Usage Bar */}
+      {/* Usage Bar - Only show if usedHandles is defined */}
       {currentPlan.usedHandles !== undefined && (
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2">
