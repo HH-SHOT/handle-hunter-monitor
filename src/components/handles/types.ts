@@ -1,5 +1,4 @@
 
-
 export interface Handle {
   id: string;
   name: string;
@@ -8,6 +7,8 @@ export interface Handle {
   lastChecked: string;
   notifications: boolean;
 }
+
+export type HandleStatus = 'available' | 'unavailable' | 'monitoring';
 
 export interface HandleFormData {
   id?: string;
@@ -25,4 +26,3 @@ export interface DbHandle {
   created_at: string;
   user_id: string;
 }
-

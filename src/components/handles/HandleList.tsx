@@ -7,17 +7,17 @@ import { RefreshCw } from 'lucide-react';
 
 interface HandleListProps {
   handles: Handle[];
-  loading: boolean;
+  loading?: boolean;
   refreshingHandles?: string[];
   onDelete: (handle: Handle) => void;
-  onEdit: (handle: Handle) => void;
+  onEdit?: (handle: Handle) => void;
   onToggleNotifications: (handle: Handle) => void;
   onCheckHandle?: (handle: Handle) => void;
 }
 
 const HandleList = ({ 
   handles, 
-  loading, 
+  loading = false, 
   refreshingHandles = [], 
   onDelete, 
   onEdit, 
@@ -58,11 +58,11 @@ const HandleList = ({
             <HandleItem 
               key={handle.id} 
               handle={handle} 
-              isRefreshing={refreshingHandles.includes(handle.id)}
-              onDelete={onDelete}
-              onEdit={onEdit}
-              onToggleNotifications={onToggleNotifications}
-              onCheckHandle={onCheckHandle}
+              isRefreshing={refreshingHandles?.includes(handle.id) || false}
+              onDelete={() => onDelete(handle)}
+              onEdit={onEdit ? () => onEdit(handle) : undefined}
+              onToggleNotifications={() => onToggleNotifications(handle)}
+              onCheckHandle={onCheckHandle ? () => onCheckHandle(handle) : undefined}
             />
           ))}
         </TableBody>

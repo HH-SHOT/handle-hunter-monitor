@@ -1,5 +1,5 @@
 
-import { Handle, DbHandle } from './types';
+import { Handle, DbHandle, HandleStatus } from './types';
 
 // Convert DB platform string to strict union type
 export const convertToPlatformType = (
@@ -30,3 +30,26 @@ export const formatHandlesFromDb = (data: DbHandle[]): Handle[] =>
     notifications: handle.notifications_enabled !== null ? handle.notifications_enabled : true,
   }));
 
+// Get unique platforms from handles
+export const getUniquePlatforms = (handles: Handle[]): string[] => {
+  const platforms = new Set<string>();
+  handles.forEach(handle => {
+    platforms.add(handle.platform);
+  });
+  return Array.from(platforms);
+};
+
+// Filter handles by platform
+export const filterHandlesByPlatform = (handles: Handle[], platform: string): Handle[] => {
+  return handles.filter(handle => handle.platform === platform);
+};
+
+// Get counts of handles by status
+export const getHandleStatusCounts = (handles: Handle[]) => {
+  return {
+    available: handles.filter(h => h.status === 'available').length,
+    unavailable: handles.filter(h => h.status === 'unavailable').length,
+    monitoring: handles.filter(h => h.status === 'monitoring').length,
+    total: handles.length
+  };
+};
