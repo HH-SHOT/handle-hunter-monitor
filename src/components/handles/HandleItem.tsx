@@ -111,7 +111,7 @@ const HandleItem = ({
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 rounded-full"
-                    onClick={() => onCheckHandle(handle)}
+                    onClick={() => onCheckHandle && onCheckHandle(handle)}
                     disabled={isRefreshing}
                   >
                     <RefreshCw className={`h-3 w-3 text-gray-500 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -140,7 +140,7 @@ const HandleItem = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={onToggleNotifications}
+          onClick={() => onToggleNotifications(handle)}
           className={`${handle.notifications ? 'text-brand-blue' : 'text-gray-400'}`}
         >
           {handle.notifications ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
@@ -160,13 +160,13 @@ const HandleItem = ({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {onEdit && (
-              <DropdownMenuItem onClick={() => onEdit(handle)}>
+              <DropdownMenuItem onClick={() => onEdit && onEdit(handle)}>
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
               </DropdownMenuItem>
             )}
             {onCheckHandle && (
-              <DropdownMenuItem onClick={() => onCheckHandle(handle)} disabled={isRefreshing}>
+              <DropdownMenuItem onClick={() => onCheckHandle && onCheckHandle(handle)} disabled={isRefreshing}>
                 <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                 Check Now
               </DropdownMenuItem>
