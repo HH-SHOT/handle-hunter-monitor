@@ -11,11 +11,12 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
     notFoundText: [
       "This account doesn't exist",
       "This profile doesn't exist",
-      "This account doesn't exist,Try searching for another.",
       "User not found",
       "Page not found",
       "Hmm...this page doesn't exist",
-      "Something went wrong"
+      "Account doesn't exist",
+      "Something went wrong",
+      "doesn't exist. Try searching for another."
     ],
   },
   instagram: {
@@ -25,14 +26,15 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
       "The link you followed may be broken",
       "Page not found",
       "User not found",
-      "The page may have been removed"
+      "The page may have been removed",
+      "This username isn't available."
     ],
   },
   twitch: {
     url: "https://www.twitch.tv/",
     notFoundText: [
       "This channel is currently unavailable.",
-      "Sorry. Unless you’ve got a time machine, that content is unavailable.",
+      "Sorry. Unless you've got a time machine, that content is unavailable.",
       "User not found",
       "Page not found",
       "Channel not found",
@@ -45,9 +47,8 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
       "Couldn't find this account",
       "This account is not available",
       "User not found",
-      "404",
       "Page not found",
-      "Couldn't find this account"
+      "This username doesn't exist"
     ],
     requiresAtSymbol: true
   },
