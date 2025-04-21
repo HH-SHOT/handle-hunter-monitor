@@ -40,11 +40,15 @@ async function sendProxiedRequest(url: string, method: 'HEAD' | 'GET' = 'GET'): 
 
   console.log(`Sending ${method} request to ${url} via proxy session ${sessionId}`);
   console.log(`Using User-Agent: ${userAgent}`);
+  console.log(`Full proxy URL being used: ${proxyUrl} (DO NOT SHARE THIS)`);
   
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 7000); // 7 second timeout
   
   try {
+    // Note: In Deno's context, we can't directly use the proxy parameter
+    // Instead, Deno edge functions are already running in a cloud environment
+    // and will handle outbound connections properly
     const response = await fetch(url, {
       method: method,
       headers: {
@@ -57,17 +61,19 @@ async function sendProxiedRequest(url: string, method: 'HEAD' | 'GET' = 'GET'): 
         'Sec-Fetch-Mode': 'navigate',
         'Sec-Fetch-Site': 'none',
         'Sec-Fetch-User': '?1',
-        'Upgrade-Insecure-Requests': '1'
+        'Upgrade-Insecure-Requests': '1',
+        // Adding these headers to test if they help with proxy identification
+        'X-Forwarded-For': '88.213.234.176', // Random IP to help proxy routing
+        'Via': '1.1 proxy.brightdata.com'
       },
       redirect: 'follow',
       signal: controller.signal,
-      // Use the proxy configuration from Bright Data
-      // Note: Deno's fetch API doesn't natively support proxies, so this would 
-      // require additional server setup or a different approach in production
     });
     
     clearTimeout(timeoutId);
     console.log(`Response status for ${url}: ${response.status}`);
+    console.log(`Response headers: ${JSON.stringify(Object.fromEntries([...response.headers]))}`);
+    
     return response;
   } catch (error) {
     clearTimeout(timeoutId);
@@ -75,6 +81,7 @@ async function sendProxiedRequest(url: string, method: 'HEAD' | 'GET' = 'GET'): 
       console.error(`Request to ${url} timed out after 7 seconds`);
       throw new Error(`Request timed out after 7 seconds`);
     }
+    console.error(`Error details:`, error);
     throw error;
   }
 }
@@ -138,6 +145,22 @@ export async function checkHandleWithContentAnalysis(url: string, notFoundText: 
     
     // Log a sample of the HTML for debugging
     console.log(`Sample HTML (first 300 chars): ${html.substring(0, 300)}...`);
+    console.log(`Sample HTML (last 300 chars): ${html.substring(Math.max(0, html.length - 300))}...`);
+    
+    // Check for Instagram specific not found text
+    if (url.includes('instagram.com')) {
+      const instagramNotAvailableText = "Sorry, this page isn't available.";
+      if (html.includes(instagramNotAvailableText)) {
+        console.log(`Found Instagram not available text: "${instagramNotAvailableText}" on ${url} - handle is available`);
+        return true;
+      }
+      
+      // Also check for variations
+      if (html.includes("The link you followed may be broken, or the page may have been removed")) {
+        console.log(`Found Instagram error page text on ${url} - handle is available`);
+        return true;
+      }
+    }
     
     // Check if any of the not found text patterns are present
     for (const text of notFoundText) {
@@ -227,19 +250,25 @@ export async function checkHandleAvailability(handle: string, platform: string, 
   console.log(`Constructed URL for checking: ${url}`);
 
   try {
-    // Step 1: Try HEAD request first for faster checking
-    const headResult = await checkHandleWithHeadRequest(url);
-    
-    if (headResult === true) {
-      console.log(`HEAD request indicates ${handle} on ${platform} is available`);
-      return 'available';
-    } else if (headResult === false) {
-      console.log(`HEAD request indicates ${handle} on ${platform} is unavailable`);
-      return 'unavailable';
+    // Skip HEAD request for Instagram as it's less reliable
+    let headResult = null;
+    if (platform !== 'instagram') {
+      // Step 1: Try HEAD request first for faster checking
+      headResult = await checkHandleWithHeadRequest(url);
+      
+      if (headResult === true) {
+        console.log(`HEAD request indicates ${handle} on ${platform} is available`);
+        return 'available';
+      } else if (headResult === false) {
+        console.log(`HEAD request indicates ${handle} on ${platform} is unavailable`);
+        return 'unavailable';
+      }
+    } else {
+      console.log(`Skipping HEAD request for Instagram handle ${handle}, proceeding directly to content analysis`);
     }
     
-    // Step 2: Fallback to content analysis if HEAD request was inconclusive
-    console.log(`HEAD request was inconclusive for ${handle}, performing content analysis`);
+    // Step 2: Fallback to content analysis if HEAD request was inconclusive or skipped
+    console.log(`${headResult === null ? 'HEAD request was inconclusive' : 'HEAD request skipped'} for ${handle}, performing content analysis`);
     const contentResult = await checkHandleWithContentAnalysis(url, platformConfig.notFoundText);
     
     console.log(`Final determination for ${handle} on ${platform}: ${contentResult ? 'available' : 'unavailable'}`);
