@@ -1,3 +1,4 @@
+
 import { PlatformConfig } from './platform-config.ts';
 
 // Bright Data proxy configuration
@@ -149,15 +150,34 @@ export async function checkHandleWithContentAnalysis(url: string, notFoundText: 
     // Check for Instagram specific not found text
     if (url.includes('instagram.com')) {
       const instagramNotAvailableText = "Sorry, this page isn't available.";
+      const instagramPrivateAccountText = "This Account is Private";
+      
+      // Check for not available text
       if (html.includes(instagramNotAvailableText)) {
         console.log(`Found Instagram not available text: "${instagramNotAvailableText}" on ${url} - handle is available`);
         return true;
+      }
+      
+      // Check for private account text (indicating handle is taken)
+      if (html.includes(instagramPrivateAccountText)) {
+        console.log(`Found Instagram private account text: "${instagramPrivateAccountText}" on ${url} - handle is taken`);
+        return false;
       }
       
       // Also check for variations
       if (html.includes("The link you followed may be broken, or the page may have been removed")) {
         console.log(`Found Instagram error page text on ${url} - handle is available`);
         return true;
+      }
+    }
+
+    // Check for Twitter specific private account text
+    if (url.includes('twitter.com')) {
+      const twitterPrivateAccountText = "This Account is Private";
+      
+      if (html.includes(twitterPrivateAccountText)) {
+        console.log(`Found Twitter private account text: "${twitterPrivateAccountText}" on ${url} - handle is taken`);
+        return false;
       }
     }
     
@@ -206,6 +226,11 @@ export async function checkHandleWithContentAnalysis(url: string, notFoundText: 
       }
       
       const html = await response.text();
+      
+      // Additional checks for private accounts
+      if (html.includes("This Account is Private")) {
+        return false;
+      }
       
       // Check for not found indicators
       for (const text of notFoundText) {
