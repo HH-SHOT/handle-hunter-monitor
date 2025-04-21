@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  RefreshCw
 } from 'lucide-react';
 import { HandleFormData } from './types';
 import { v4 as uuidv4 } from 'uuid';
+import { DialogClose } from '@/components/ui/dialog';
 
 interface AddHandleFormProps {
   isOpen?: boolean;
@@ -20,10 +22,12 @@ interface AddHandleFormProps {
 const AddHandleForm = ({ 
   isEdit = false, 
   initialData = { name: '', platform: 'twitter' }, 
-  onSave 
+  onSave,
+  onClose
 }: AddHandleFormProps) => {
   const [formData, setFormData] = useState<HandleFormData>(initialData);
   const [error, setError] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -31,20 +35,41 @@ const AddHandleForm = ({
     setError('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
-    if (!formData.name.trim()) {
-      setError('Handle name is required');
-      return;
+    try {
+      if (!formData.name.trim()) {
+        setError('Handle name is required');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Remove @ symbol if user added it
+      const cleanName = formData.name.startsWith('@') 
+        ? formData.name.substring(1) 
+        : formData.name;
+      
+      const finalFormData = {
+        ...formData,
+        id: formData.id || uuidv4(),
+        name: cleanName
+      };
+      
+      await onSave(finalFormData);
+    } catch (error) {
+      console.error('Error in handle form submission:', error);
+      setError('An error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    if (formData.name.includes('@')) {
-      setError('Please enter the handle name without the @ symbol');
-      return;
+  };
+
+  const handleCancel = () => {
+    if (onClose) {
+      onClose();
     }
-    
-    onSave(formData);
   };
 
   return (
@@ -61,6 +86,7 @@ const AddHandleForm = ({
               onChange={handleChange}
               className="pl-8"
               placeholder="username"
+              disabled={isSubmitting}
             />
           </div>
           {error && (
@@ -79,6 +105,7 @@ const AddHandleForm = ({
             value={formData.platform}
             onChange={handleChange}
             className="rounded-md border border-gray-300 p-2"
+            disabled={isSubmitting}
           >
             <option value="twitter">Twitter</option>
             <option value="instagram">Instagram</option>
@@ -89,10 +116,25 @@ const AddHandleForm = ({
       </div>
       
       <div className="flex justify-end gap-2 mt-4">
-        <Button type="button" variant="outline" onClick={() => onSave({ ...formData, id: formData.id || uuidv4() })}>Cancel</Button>
-        <Button type="submit">
-          <CheckCircle2 className="h-4 w-4 mr-2" />
-          {isEdit ? 'Update Handle' : 'Add Handle'}
+        <DialogClose asChild>
+          <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting}>
+            Cancel
+          </Button>
+        </DialogClose>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <span className="animate-spin mr-2">
+                <RefreshCw className="h-4 w-4" />
+              </span>
+              {isEdit ? 'Updating...' : 'Adding...'}
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              {isEdit ? 'Update Handle' : 'Add Handle'}
+            </>
+          )}
         </Button>
       </div>
     </form>
