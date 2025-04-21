@@ -9,10 +9,19 @@ export async function sendProxiedRequest(url: string, method: 'HEAD' | 'GET' = '
 
   console.log(`Sending ${method} request to ${url} via proxy session ${sessionId}`);
   console.log(`Using User-Agent: ${userAgent}`);
-  console.log(`Full proxy URL being used: ${proxyUrl} (DO NOT SHARE THIS)`);
+  
+  // Security headers
+  const securityHeaders = {
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Content-Security-Policy': "default-src 'self'",
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    'Referrer-Policy': 'no-referrer',
+    'X-XSS-Protection': '1; mode=block',
+  };
   
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 7000); // 7 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
   
   try {
     const response = await fetch(url, {
@@ -29,7 +38,8 @@ export async function sendProxiedRequest(url: string, method: 'HEAD' | 'GET' = '
         'Sec-Fetch-User': '?1',
         'Upgrade-Insecure-Requests': '1',
         'X-Forwarded-For': '88.213.234.176',
-        'Via': '1.1 proxy.brightdata.com'
+        'Via': '1.1 proxy.brightdata.com',
+        ...securityHeaders
       },
       redirect: 'follow',
       signal: controller.signal,
@@ -39,14 +49,57 @@ export async function sendProxiedRequest(url: string, method: 'HEAD' | 'GET' = '
     console.log(`Response status for ${url}: ${response.status}`);
     console.log(`Response headers: ${JSON.stringify(Object.fromEntries([...response.headers]))}`);
     
+    // Check for common anti-bot or CAPTCHA indicators
+    const contentType = response.headers.get('content-type') || '';
+    if (response.status === 200 && contentType.includes('text/html')) {
+      if ((await response.clone().text()).toLowerCase().includes('captcha')) {
+        console.warn(`⚠️ CAPTCHA detected on ${url} - our request was flagged`);
+      }
+    }
+    
     return response;
   } catch (error) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
-      console.error(`Request to ${url} timed out after 7 seconds`);
-      throw new Error(`Request timed out after 7 seconds`);
+      console.error(`Request to ${url} timed out after 10 seconds`);
+      throw new Error(`Request timed out after 10 seconds`);
     }
     console.error(`Error details:`, error);
     throw error;
   }
+}
+
+// Add helper function for checking status
+export function isSuccessStatusCode(statusCode: number): boolean {
+  return statusCode >= 200 && statusCode < 300;
+}
+
+// Function to get HTML content with retries
+export async function getHtmlWithRetries(url: string, maxRetries = 2): Promise<{html: string, status: number}> {
+  let retries = 0;
+  
+  while (retries <= maxRetries) {
+    try {
+      console.log(`Attempt ${retries + 1}/${maxRetries + 1} to fetch ${url}`);
+      const response = await sendProxiedRequest(url, 'GET');
+      const html = await response.text();
+      
+      return {
+        html,
+        status: response.status
+      };
+    } catch (error) {
+      retries++;
+      if (retries > maxRetries) {
+        console.error(`All ${maxRetries + 1} attempts to fetch ${url} failed`);
+        throw error;
+      }
+      
+      console.log(`Request failed, retrying (${retries}/${maxRetries})...`);
+      // Exponential backoff: 1s, 2s, 4s, etc.
+      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
+    }
+  }
+  
+  throw new Error(`Failed to fetch ${url} after ${maxRetries + 1} attempts`);
 }

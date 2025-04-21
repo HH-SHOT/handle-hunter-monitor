@@ -62,6 +62,9 @@ orioledb_version = "alpha"
 
 [functions.check-handles]
 verify_jwt = false
+rate_limit = 100
+timeout_seconds = 15
 
 [functions.handle-scheduler]
 verify_jwt = false
+
