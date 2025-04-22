@@ -1,6 +1,7 @@
 import { PlatformConfig } from './platform-config.ts';
 import { sendProxiedRequest } from './http-client.ts';
 import { analyzeContent } from './content-analyzer.ts';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
 
 // Track request counts per platform to implement rate limiting
 const requestCounts: Record<string, number> = {};
@@ -33,6 +34,70 @@ setInterval(() => {
     requestCounts[platform] = 0;
   }
 }, RESET_INTERVAL);
+
+// Function to get cached token or fetch a new one
+async function getTwitchAccessToken(supabaseClient: ReturnType<typeof createClient>): Promise<string> {
+  console.log('Getting Twitch access token');
+  
+  try {
+    // Try to get cached token
+    const { data: tokenData, error } = await supabaseClient
+      .from('api_tokens')
+      .select('*')
+      .eq('id', 'twitch')
+      .single();
+
+    const now = new Date();
+
+    // If we have a valid token that hasn't expired, return it
+    if (tokenData && new Date(tokenData.expires_at) > now) {
+      console.log('Using cached Twitch token');
+      return tokenData.access_token;
+    }
+
+    // Otherwise, get a new token
+    console.log('Fetching new Twitch token');
+    const clientId = Deno.env.get("TWITCH_CLIENT_ID");
+    const clientSecret = Deno.env.get("TWITCH_CLIENT_SECRET");
+
+    if (!clientId || !clientSecret) {
+      throw new Error("Twitch API authentication not configured");
+    }
+
+    const response = await fetch("https://id.twitch.tv/oauth2/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `client_id=${clientId}&client_secret=${clientSecret}&grant_type=client_credentials`,
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to get Twitch access token");
+    }
+
+    const { access_token, expires_in } = await response.json();
+    
+    // Calculate expiration time (subtract 5 minutes for safety margin)
+    const expiresAt = new Date(now.getTime() + (expires_in - 300) * 1000);
+
+    // Store the new token
+    const { error: upsertError } = await supabaseClient
+      .from('api_tokens')
+      .upsert({
+        id: 'twitch',
+        access_token,
+        expires_at: expiresAt.toISOString(),
+      });
+
+    if (upsertError) {
+      console.error('Error storing token:', upsertError);
+    }
+
+    return access_token;
+  } catch (error) {
+    console.error('Error in getTwitchAccessToken:', error);
+    throw error;
+  }
+}
 
 // Check Twitter handle directly using the API
 async function checkTwitterHandleWithAPI(handle: string): Promise<boolean> {
@@ -89,31 +154,16 @@ async function checkTwitterHandleWithAPI(handle: string): Promise<boolean> {
   }
 }
 
-// Add Twitch API checking function
-async function checkTwitchHandleWithAPI(handle: string): Promise<boolean> {
+// Update the Twitch API check function to use cached token
+async function checkTwitchHandleWithAPI(handle: string, supabaseClient: ReturnType<typeof createClient>): Promise<boolean> {
   console.log(`Checking Twitch handle ${handle} using Twitch API`);
   try {
     const clientId = Deno.env.get("TWITCH_CLIENT_ID");
-    const clientSecret = Deno.env.get("TWITCH_CLIENT_SECRET");
-
-    if (!clientId || !clientSecret) {
-      console.error("Missing Twitch API credentials");
-      throw new Error("Twitch API authentication not configured");
+    if (!clientId) {
+      throw new Error("Twitch client ID not configured");
     }
 
-    // Get access token
-    const tokenResponse = await fetch("https://id.twitch.tv/oauth2/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `client_id=${clientId}&client_secret=${clientSecret}&grant_type=client_credentials`,
-    });
-
-    if (!tokenResponse.ok) {
-      throw new Error("Failed to get Twitch access token");
-    }
-
-    const tokenData = await tokenResponse.json();
-    const accessToken = tokenData.access_token;
+    const accessToken = await getTwitchAccessToken(supabaseClient);
 
     // Check user exists
     const userResponse = await fetch(`https://api.twitch.tv/helix/users?login=${handle}`, {
@@ -123,17 +173,28 @@ async function checkTwitchHandleWithAPI(handle: string): Promise<boolean> {
       },
     });
 
-    console.log(`Twitch API response status: ${userResponse.status}`);
-    const userData = await userResponse.json();
-    
-    // If no data is returned, the handle is available
-    if (!userData.data || userData.data.length === 0) {
-      console.log(`✅ Twitch API indicates ${handle} is available (no user found)`);
-      return true;
+    if (!userResponse.ok) {
+      if (userResponse.status === 401) {
+        // Token might be invalid despite our caching, retry once with a fresh token
+        console.log('Token rejected, fetching fresh token');
+        const freshToken = await getTwitchAccessToken(supabaseClient);
+        const retryResponse = await fetch(`https://api.twitch.tv/helix/users?login=${handle}`, {
+          headers: {
+            "Client-ID": clientId,
+            "Authorization": `Bearer ${freshToken}`,
+          },
+        });
+        if (!retryResponse.ok) {
+          throw new Error(`Twitch API error: ${retryResponse.status}`);
+        }
+        const retryData = await retryResponse.json();
+        return !retryData.data || retryData.data.length === 0;
+      }
+      throw new Error(`Twitch API error: ${userResponse.status}`);
     }
 
-    console.log(`❌ Twitch API indicates ${handle} is taken (user found)`);
-    return false;
+    const userData = await userResponse.json();
+    return !userData.data || userData.data.length === 0;
   } catch (error) {
     console.error(`Error checking Twitch handle with API:`, error);
     throw error;
@@ -235,10 +296,20 @@ export async function checkHandleAvailability(handle: string, platform: string, 
   }
 
   try {
+    // Initialize Supabase client for token management
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error("Missing required environment variables");
+    }
+    
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
     // Use Twitch API if configured
     if (platform === 'twitch' && platformConfig.useApi) {
       try {
-        const isAvailable = await checkTwitchHandleWithAPI(cleanHandle);
+        const isAvailable = await checkTwitchHandleWithAPI(cleanHandle, supabaseClient);
         return isAvailable ? 'available' : 'unavailable';
       } catch (error) {
         console.error(`Error using Twitch API, falling back to content analysis:`, error);
