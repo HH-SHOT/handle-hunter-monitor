@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Handle, HandleFormData } from '../types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -58,14 +59,23 @@ export const useHandleOperations = () => {
       
       console.log('DEBUG: Handle added successfully', { handle: data });
       
-      await checkHandle(handleId);
-      
-      toast({
-        title: 'Handle Added',
-        description: `@${formData.name} is now being monitored.`,
-      });
-
-      return true;
+      try {
+        await checkHandle(handleId);
+        
+        toast({
+          title: 'Handle Added',
+          description: `@${formData.name} is now being monitored.`,
+        });
+        
+        return true;
+      } catch (checkError) {
+        console.error('ERROR: Handle added but checking failed', checkError);
+        toast({
+          title: 'Handle Added',
+          description: `@${formData.name} was added but availability check failed. It will be checked later.`,
+        });
+        return true; // Still return true since the handle was added
+      }
     } catch (error) {
       console.error('CRITICAL: Unexpected error in handleAddHandle', error);
       toast({
@@ -182,11 +192,22 @@ export const useHandleOperations = () => {
 
   const checkHandle = async (handleId: string) => {
     try {
+      // Get the current session to extract the access token
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      
+      if (!accessToken) {
+        console.error('ERROR: No access token available for API call');
+        throw new Error('Authentication required for checking handles');
+      }
+      
+      console.log('DEBUG: Sending check-handles request with auth token');
+      
       const response = await fetch(`https://mausvzbzorurkcoruhev.supabase.co/functions/v1/check-handles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify({ handleId })
       });
