@@ -35,7 +35,8 @@ export const useHandleData = () => {
         platform: dbHandle.platform as 'twitter' | 'instagram' | 'twitch' | 'tiktok',
         status: dbHandle.status as 'available' | 'unavailable' | 'monitoring',
         lastChecked: dbHandle.last_checked ? new Date(dbHandle.last_checked).toLocaleString() : 'never',
-        notifications: dbHandle.notifications_enabled || false
+        notifications: dbHandle.notifications_enabled || false,
+        monitoringEnabled: dbHandle.monitoring_enabled || false
       }));
 
       setHandles(formattedHandles);

@@ -1,3 +1,4 @@
+
 export interface Handle {
   id: string;
   name: string;
@@ -23,6 +24,7 @@ export interface DbHandle {
   status: string;
   last_checked: string | null;
   notifications_enabled: boolean | null;
+  monitoring_enabled: boolean | null;
   created_at: string;
   user_id: string;
 }
