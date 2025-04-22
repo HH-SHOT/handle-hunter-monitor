@@ -10,6 +10,7 @@ import {
 import { HandleFormData } from './types';
 import { v4 as uuidv4 } from 'uuid';
 import { DialogClose } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AddHandleFormProps {
   isOpen?: boolean;
@@ -29,9 +30,17 @@ const AddHandleForm = ({
   const [error, setError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    setError('');
+  };
+
+  const handlePlatformChange = (value: string) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      platform: value as 'twitter' | 'instagram' | 'twitch' | 'tiktok' 
+    }));
     setError('');
   };
 
@@ -108,19 +117,21 @@ const AddHandleForm = ({
         
         <div className="grid gap-2">
           <label htmlFor="platform" className="text-sm font-medium">Platform</label>
-          <select
-            id="platform"
-            name="platform"
-            value={formData.platform}
-            onChange={handleChange}
-            className="rounded-md border border-gray-300 p-2"
+          <Select 
+            value={formData.platform} 
+            onValueChange={handlePlatformChange}
             disabled={isSubmitting}
           >
-            <option value="twitter">Twitter</option>
-            <option value="instagram">Instagram</option>
-            <option value="twitch">Twitch</option>
-            <option value="tiktok">TikTok</option>
-          </select>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select platform" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="twitter">Twitter</SelectItem>
+              <SelectItem value="instagram">Instagram</SelectItem>
+              <SelectItem value="twitch">Twitch</SelectItem>
+              <SelectItem value="tiktok">TikTok</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
       
