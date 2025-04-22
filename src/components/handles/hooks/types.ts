@@ -18,5 +18,13 @@ export interface DashboardData {
   };
 }
 
+// Platform check methods information
+export interface PlatformMethodInfo {
+  platform: string;
+  isOptimal: boolean;
+  checkMethod: string;
+  notes: string;
+}
+
 // Import the Handle type from the main types file
 import { Handle } from '../types';

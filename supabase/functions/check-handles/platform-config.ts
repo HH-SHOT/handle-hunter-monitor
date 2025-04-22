@@ -1,3 +1,4 @@
+
 export interface PlatformConfig {
   url: string;
   notFoundText: string[];
@@ -6,6 +7,10 @@ export interface PlatformConfig {
   requiresAtSymbol?: boolean;
   apiEndpoint?: string;
   useApi?: boolean;
+  // Documentation about optimal checking method
+  isOptimal?: boolean;
+  checkMethod: 'api' | 'scraping';
+  methodNotes: string;
 }
 
 export const PLATFORMS: Record<string, PlatformConfig> = {
@@ -37,7 +42,10 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
       "Followers",
       "Following"
     ],
-    apiEndpoint: "https://api.twitter.com/2/users/by/username/"
+    apiEndpoint: "https://api.twitter.com/2/users/by/username/",
+    isOptimal: true,
+    checkMethod: 'api',
+    methodNotes: "Uses official Twitter API for accurate username availability checks with proper error codes. Most reliable method."
   },
   instagram: {
     url: "https://www.instagram.com/",
@@ -62,7 +70,10 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
       "following",
       "log in to see their photos and videos",
       "This Account is Private"
-    ]
+    ],
+    isOptimal: false,
+    checkMethod: 'scraping',
+    methodNotes: "No public API for username checks. Uses URL probing which is common practice but prone to rate-limits and blocking."
   },
   twitch: {
     url: "https://www.twitch.tv/",
@@ -89,7 +100,10 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
       "videos",
       "clips"
     ],
-    useApi: true
+    useApi: true,
+    isOptimal: true,
+    checkMethod: 'api',
+    methodNotes: "Uses official Twitch Helix API which is fast, reliable, and accurate for username checks."
   },
   tiktok: {
     url: "https://www.tiktok.com/@",
@@ -114,6 +128,9 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
       "bio",
       "profile"
     ],
-    requiresAtSymbol: true
+    requiresAtSymbol: true,
+    isOptimal: false,
+    checkMethod: 'scraping',
+    methodNotes: "No official API for username checks. Uses URL probing which is reliable short-term but lacks stability at scale."
   },
 };
