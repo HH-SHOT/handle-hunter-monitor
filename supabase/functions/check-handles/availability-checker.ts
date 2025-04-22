@@ -1,4 +1,3 @@
-
 import { PlatformConfig } from './platform-config.ts';
 import { sendProxiedRequest } from './http-client.ts';
 import { analyzeContent } from './content-analyzer.ts';
@@ -86,6 +85,57 @@ async function checkTwitterHandleWithAPI(handle: string): Promise<boolean> {
     return false;
   } catch (error) {
     console.error(`Error checking Twitter handle with API:`, error);
+    throw error;
+  }
+}
+
+// Add Twitch API checking function
+async function checkTwitchHandleWithAPI(handle: string): Promise<boolean> {
+  console.log(`Checking Twitch handle ${handle} using Twitch API`);
+  try {
+    const clientId = Deno.env.get("TWITCH_CLIENT_ID");
+    const clientSecret = Deno.env.get("TWITCH_CLIENT_SECRET");
+
+    if (!clientId || !clientSecret) {
+      console.error("Missing Twitch API credentials");
+      throw new Error("Twitch API authentication not configured");
+    }
+
+    // Get access token
+    const tokenResponse = await fetch("https://id.twitch.tv/oauth2/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `client_id=${clientId}&client_secret=${clientSecret}&grant_type=client_credentials`,
+    });
+
+    if (!tokenResponse.ok) {
+      throw new Error("Failed to get Twitch access token");
+    }
+
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access_token;
+
+    // Check user exists
+    const userResponse = await fetch(`https://api.twitch.tv/helix/users?login=${handle}`, {
+      headers: {
+        "Client-ID": clientId,
+        "Authorization": `Bearer ${accessToken}`,
+      },
+    });
+
+    console.log(`Twitch API response status: ${userResponse.status}`);
+    const userData = await userResponse.json();
+    
+    // If no data is returned, the handle is available
+    if (!userData.data || userData.data.length === 0) {
+      console.log(`✅ Twitch API indicates ${handle} is available (no user found)`);
+      return true;
+    }
+
+    console.log(`❌ Twitch API indicates ${handle} is taken (user found)`);
+    return false;
+  } catch (error) {
+    console.error(`Error checking Twitch handle with API:`, error);
     throw error;
   }
 }
@@ -185,13 +235,13 @@ export async function checkHandleAvailability(handle: string, platform: string, 
   }
 
   try {
-    // Use Twitter API directly for Twitter handles
-    if (platform === 'twitter' && platformConfig.apiEndpoint) {
+    // Use Twitch API if configured
+    if (platform === 'twitch' && platformConfig.useApi) {
       try {
-        const isAvailable = await checkTwitterHandleWithAPI(cleanHandle);
+        const isAvailable = await checkTwitchHandleWithAPI(cleanHandle);
         return isAvailable ? 'available' : 'unavailable';
       } catch (error) {
-        console.error(`Error using Twitter API, falling back to content analysis:`, error);
+        console.error(`Error using Twitch API, falling back to content analysis:`, error);
         // Fall back to regular content analysis if API fails
       }
     }

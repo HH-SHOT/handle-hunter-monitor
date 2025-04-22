@@ -1,4 +1,3 @@
-
 export interface PlatformConfig {
   url: string;
   notFoundText: string[];
@@ -6,6 +5,7 @@ export interface PlatformConfig {
   takenIndicators: string[];
   requiresAtSymbol?: boolean;
   apiEndpoint?: string;
+  useApi?: boolean;
 }
 
 export const PLATFORMS: Record<string, PlatformConfig> = {
@@ -88,7 +88,8 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
       "Subscribe",
       "videos",
       "clips"
-    ]
+    ],
+    useApi: true
   },
   tiktok: {
     url: "https://www.tiktok.com/@",
