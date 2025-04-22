@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Handle, HandleFormData } from '../types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,14 +22,14 @@ export const useHandleOperations = () => {
     try {
       const handleId = formData.id || uuidv4();
       
-      console.log('Adding handle:', {
+      console.log('DEBUG: Attempting to add handle', {
         handleId,
         name: formData.name,
         platform: formData.platform,
         userId: user.id
       });
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('handles')
         .insert({
           id: handleId,
@@ -45,11 +44,20 @@ export const useHandleOperations = () => {
         .single();
       
       if (error) {
-        console.error('Error details:', error);
-        throw error;
+        console.error('ERROR: Failed to add handle', {
+          error: error.message,
+          details: error
+        });
+        toast({
+          title: 'Handle Addition Error',
+          description: `Could not add handle: ${error.message}`,
+          variant: 'destructive'
+        });
+        return false;
       }
       
-      console.log('Handle added successfully, checking availability...');
+      console.log('DEBUG: Handle added successfully', { handle: data });
+      
       await checkHandle(handleId);
       
       toast({
@@ -59,10 +67,10 @@ export const useHandleOperations = () => {
 
       return true;
     } catch (error) {
-      console.error('Error adding handle:', error);
+      console.error('CRITICAL: Unexpected error in handleAddHandle', error);
       toast({
         title: 'Error',
-        description: 'Failed to add the handle. Please try again.',
+        description: 'An unexpected error occurred. Please try again.',
         variant: 'destructive'
       });
       return false;
@@ -174,7 +182,7 @@ export const useHandleOperations = () => {
 
   const checkHandle = async (handleId: string) => {
     try {
-      await fetch(`https://mausvzbzorurkcoruhev.supabase.co/functions/v1/check-handles`, {
+      const response = await fetch(`https://mausvzbzorurkcoruhev.supabase.co/functions/v1/check-handles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -182,8 +190,23 @@ export const useHandleOperations = () => {
         },
         body: JSON.stringify({ handleId })
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Check Handle Error:', { 
+          status: response.status, 
+          statusText: response.statusText,
+          errorText 
+        });
+        throw new Error(`Handle check failed: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('Handle Check Result:', result);
+      return result;
     } catch (error) {
-      console.error('Error checking handle:', error);
+      console.error('CRITICAL: Error checking handle:', error);
+      throw error;
     }
   };
 
@@ -269,7 +292,6 @@ export const useHandleOperations = () => {
     }
 
     try {
-      // Only delete handle_history entries for the current user's handles
       const { data: userHandles, error: handleError } = await supabase
         .from('handles')
         .select('id')
