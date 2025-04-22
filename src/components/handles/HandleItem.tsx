@@ -1,78 +1,18 @@
+
 import React from 'react';
-import { 
-  Twitter, 
-  Instagram, 
-  TrendingUp,
-  Edit,
-  Trash2,
-  CircleCheck,
-  XCircle,
-  Monitor,
-  Bell,
-  BellOff,
-  RefreshCw
-} from 'lucide-react';
+import { RefreshCw, Bell, BellOff } from 'lucide-react';
 import { Handle } from './types';
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
-
-// Add Twitch logo import:
-import { Twitch } from 'lucide-react';
-
-const getPlatformIcon = (platform: string) => {
-  switch (platform) {
-    case 'twitter':
-      return <Twitter className="h-4 w-4" />;
-    case 'instagram':
-      return <Instagram className="h-4 w-4" />;
-    case 'twitch':
-      return <Twitch className="h-4 w-4" />; 
-    case 'tiktok':
-      return <TrendingUp className="h-4 w-4" />;
-    default:
-      return <Twitter className="h-4 w-4" />;
-  }
-};
-
-const getStatusComponent = (status: string, isMonitoring: boolean) => {
-  const statusBadge = (
-    <span 
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-        status === 'available' 
-          ? 'bg-green-100 text-green-800' 
-          : 'bg-red-100 text-red-800'
-      }`}
-    >
-      {status === 'available' ? 'Available' : 'Taken'}
-    </span>
-  );
-
-  const monitoringBadge = isMonitoring ? (
-    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-      <Monitor className="h-3 w-3 mr-1" />
-      Monitoring
-    </span>
-  ) : null;
-
-  return (
-    <div className="flex items-center">
-      {statusBadge}
-      {monitoringBadge}
-    </div>
-  );
-};
+import PlatformIcon from './components/PlatformIcon';
+import HandleStatus from './components/HandleStatus';
+import HandleActions from './components/HandleActions';
 
 interface HandleItemProps {
   handle: Handle;
@@ -80,49 +20,20 @@ interface HandleItemProps {
   onEdit?: (handle: Handle) => void;
   onDelete: (handle: Handle) => void;
   onToggleNotifications: (handle: Handle) => void;
-  onToggleMonitoring?: (handle: Handle) => void;
-  onCheckHandle?: (handle: Handle) => void;
+  onToggleMonitoring: (handle: Handle) => void;
 }
 
-const HandleItem = ({ 
-  handle, 
-  isRefreshing = false, 
-  onEdit, 
-  onDelete, 
+const HandleItem = ({
+  handle,
+  isRefreshing = false,
+  onEdit,
+  onDelete,
   onToggleNotifications,
   onToggleMonitoring,
-  onCheckHandle 
 }: HandleItemProps) => {
-  const handleCheckClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (onCheckHandle) {
-      onCheckHandle(handle);
-    }
-  };
-
-  const handleToggleMonitoring = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (onToggleMonitoring) {
-      onToggleMonitoring(handle);
-    }
-  };
-
-  // Add these event handlers to prevent default behavior and call the passed function
   const handleToggleNotificationsClick = (e: React.MouseEvent) => {
     e.preventDefault();
     onToggleNotifications(handle);
-  };
-
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    onDelete(handle);
-  };
-
-  const handleEditClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (onEdit) {
-      onEdit(handle);
-    }
   };
 
   return (
@@ -130,7 +41,7 @@ const HandleItem = ({
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="rounded-full bg-gray-100 p-1.5">
-            {getPlatformIcon(handle.platform)}
+            <PlatformIcon platform={handle.platform} />
           </div>
           <div>
             <span className="font-medium">@{handle.name}</span>
@@ -139,7 +50,7 @@ const HandleItem = ({
         </div>
       </td>
       <td className="px-4 py-3">
-        {getStatusComponent(handle.status, Boolean(handle.monitoringEnabled))}
+        <HandleStatus status={handle.status} isMonitoring={Boolean(handle.monitoringEnabled)} />
       </td>
       <td className="px-4 py-3">
         <TooltipProvider>
@@ -148,7 +59,7 @@ const HandleItem = ({
               <div className="flex items-center">
                 <Switch
                   checked={Boolean(handle.monitoringEnabled)}
-                  onCheckedChange={() => onToggleMonitoring?.(handle)}
+                  onCheckedChange={() => onToggleMonitoring(handle)}
                 />
               </div>
             </TooltipTrigger>
@@ -180,33 +91,11 @@ const HandleItem = ({
         </Button>
       </td>
       <td className="px-4 py-3 text-right">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" type="button">
-              <span className="sr-only">Actions</span>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 9.5C8.82843 9.5 9.5 8.82843 9.5 8C9.5 7.17157 8.82843 6.5 8 6.5C7.17157 6.5 6.5 7.17157 6.5 8C6.5 8.82843 7.17157 9.5 8 9.5Z" fill="currentColor" />
-                <path d="M8 3.5C8.82843 3.5 9.5 2.82843 9.5 2C9.5 1.17157 8.82843 0.5 8 0.5C7.17157 0.5 6.5 1.17157 6.5 2C6.5 2.82843 7.17157 3.5 8 3.5Z" fill="currentColor" />
-                <path d="M8 15.5C8.82843 15.5 9.5 14.8284 9.5 14C9.5 13.1716 8.82843 12.5 8 12.5C7.17157 12.5 6.5 13.1716 6.5 14C6.5 14.8284 7.17157 15.5 8 15.5Z" fill="currentColor" />
-              </svg>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {onEdit && (
-              <DropdownMenuItem onClick={handleEditClick}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem
-              className="text-red-600"
-              onClick={handleDeleteClick}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <HandleActions
+          handle={handle}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
       </td>
     </tr>
   );
