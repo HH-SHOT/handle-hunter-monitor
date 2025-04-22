@@ -11,10 +11,10 @@ export const useDashboardData = () => {
   const [handles, setHandles] = useState<Handle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshingHandles, setRefreshingHandles] = useState<string[]>([]);
-  const [filterOptions, setFilterOptions] = useState({
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     searchTerm: '',
     platform: 'all',
-    statuses: ['available', 'unavailable', 'monitoring'] as const,
+    statuses: ['available', 'unavailable', 'monitoring']
   });
 
   const fetchHandles = async () => {

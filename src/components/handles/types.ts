@@ -1,4 +1,3 @@
-
 export interface Handle {
   id: string;
   name: string;
@@ -32,4 +31,10 @@ export interface HandleStatusCounts {
   unavailable: number;
   monitoring: number;
   total: number;
+}
+
+export interface FilterOptions {
+  searchTerm: string;
+  platform: string;
+  statuses: HandleStatus[];
 }

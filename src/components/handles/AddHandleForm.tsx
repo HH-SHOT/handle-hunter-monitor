@@ -1,31 +1,26 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { 
-  AlertCircle,
-  CheckCircle2,
-  RefreshCw
-} from 'lucide-react';
+import { DialogClose } from '@/components/ui/dialog';
 import { HandleFormData } from './types';
 import { v4 as uuidv4 } from 'uuid';
-import { DialogClose } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CheckCircle2, RefreshCw } from 'lucide-react';
+import HandleNameInput from './form/HandleNameInput';
+import PlatformSelect from './form/PlatformSelect';
 
 interface AddHandleFormProps {
-  isOpen?: boolean;
   isEdit?: boolean;
   initialData?: HandleFormData;
   onClose?: () => void;
   onSave: (data: HandleFormData) => void;
 }
 
-const AddHandleForm = ({ 
-  isEdit = false, 
-  initialData = { name: '', platform: 'twitter' }, 
+const AddHandleForm: React.FC<AddHandleFormProps> = ({
+  isEdit = false,
+  initialData = { name: '', platform: 'twitter' },
   onSave,
   onClose
-}: AddHandleFormProps) => {
+}) => {
   const [formData, setFormData] = useState<HandleFormData>(initialData);
   const [error, setError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,11 +31,8 @@ const AddHandleForm = ({
     setError('');
   };
 
-  const handlePlatformChange = (value: string) => {
-    setFormData(prev => ({ 
-      ...prev, 
-      platform: value as 'twitter' | 'instagram' | 'twitch' | 'tiktok' 
-    }));
+  const handlePlatformChange = (value: HandleFormData['platform']) => {
+    setFormData(prev => ({ ...prev, platform: value }));
     setError('');
   };
 
@@ -55,24 +47,14 @@ const AddHandleForm = ({
         return;
       }
       
-      // Remove @ symbol if user added it
       const cleanName = formData.name.startsWith('@') 
         ? formData.name.substring(1) 
         : formData.name;
-      
-      // Ensure platform is one of the allowed values
-      const validPlatforms = ['twitter', 'instagram', 'twitch', 'tiktok'];
-      if (!validPlatforms.includes(formData.platform)) {
-        setError('Invalid platform selected');
-        setIsSubmitting(false);
-        return;
-      }
       
       const finalFormData = {
         ...formData,
         id: formData.id || uuidv4(),
         name: cleanName,
-        platform: formData.platform as 'twitter' | 'instagram' | 'twitch' | 'tiktok'
       };
       
       await onSave(finalFormData);
@@ -84,69 +66,38 @@ const AddHandleForm = ({
     }
   };
 
-  const handleCancel = () => {
-    if (onClose) {
-      onClose();
-    }
-  };
-
   return (
     <form onSubmit={handleSubmit}>
       <div className="grid gap-4 py-4">
-        <div className="grid gap-2">
-          <label htmlFor="name" className="text-sm font-medium">Handle Name</label>
-          <div className="relative">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">@</span>
-            <Input
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="pl-8"
-              placeholder="username"
-              disabled={isSubmitting}
-            />
-          </div>
-          {error && (
-            <div className="text-red-500 text-sm flex items-center mt-1">
-              <AlertCircle className="h-4 w-4 mr-1" />
-              {error}
-            </div>
-          )}
-        </div>
+        <HandleNameInput
+          value={formData.name}
+          onChange={handleChange}
+          error={error}
+          disabled={isSubmitting}
+        />
         
-        <div className="grid gap-2">
-          <label htmlFor="platform" className="text-sm font-medium">Platform</label>
-          <Select 
-            value={formData.platform} 
-            onValueChange={handlePlatformChange}
-            disabled={isSubmitting}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select platform" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="twitter">Twitter</SelectItem>
-              <SelectItem value="instagram">Instagram</SelectItem>
-              <SelectItem value="twitch">Twitch</SelectItem>
-              <SelectItem value="tiktok">TikTok</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <PlatformSelect
+          value={formData.platform}
+          onValueChange={handlePlatformChange}
+          disabled={isSubmitting}
+        />
       </div>
       
       <div className="flex justify-end gap-2 mt-4">
         <DialogClose asChild>
-          <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
         </DialogClose>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? (
             <>
-              <span className="animate-spin mr-2">
-                <RefreshCw className="h-4 w-4" />
-              </span>
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
               {isEdit ? 'Updating...' : 'Adding...'}
             </>
           ) : (
