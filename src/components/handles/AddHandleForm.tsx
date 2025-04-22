@@ -51,10 +51,19 @@ const AddHandleForm = ({
         ? formData.name.substring(1) 
         : formData.name;
       
+      // Ensure platform is one of the allowed values
+      const validPlatforms = ['twitter', 'instagram', 'twitch', 'tiktok'];
+      if (!validPlatforms.includes(formData.platform)) {
+        setError('Invalid platform selected');
+        setIsSubmitting(false);
+        return;
+      }
+      
       const finalFormData = {
         ...formData,
         id: formData.id || uuidv4(),
-        name: cleanName
+        name: cleanName,
+        platform: formData.platform as 'twitter' | 'instagram' | 'twitch' | 'tiktok'
       };
       
       await onSave(finalFormData);

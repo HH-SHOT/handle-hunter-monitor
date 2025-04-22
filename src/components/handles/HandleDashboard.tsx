@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -16,7 +15,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { RefreshCw } from 'lucide-react';
 
-// Sample handles for demo mode (when user is not signed in)
 const demoHandles: Handle[] = [
   {
     id: '1',
@@ -52,14 +50,9 @@ const demoHandles: Handle[] = [
   }
 ];
 
-/**
- * The main dashboard component for handle management.
- */
 const HandleDashboard: React.FC = () => {
-  // Auth context to get the current user
   const { user, loading: authLoading } = useAuth();
 
-  // State for handles and UI controls
   const [handles, setHandles] = useState<Handle[]>([]);
   const [filteredHandles, setFilteredHandles] = useState<Handle[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -76,20 +69,17 @@ const HandleDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshingHandles, setRefreshingHandles] = useState<string[]>([]);
 
-  // Fetch handles from Supabase when the component mounts or when the user changes
   useEffect(() => {
     if (authLoading) return;
     
     if (user) {
       fetchHandles();
     } else {
-      // User is not signed in, use demo handles
       setHandles(demoHandles);
       setIsLoading(false);
     }
   }, [user, authLoading]);
 
-  // Fetch handles from Supabase
   const fetchHandles = async () => {
     if (!user) return;
     
@@ -105,7 +95,6 @@ const HandleDashboard: React.FC = () => {
         throw error;
       }
 
-      // Convert the DB handles to the Handle type
       const formattedHandles: Handle[] = (data || []).map((dbHandle: DbHandle) => ({
         id: dbHandle.id,
         name: dbHandle.name,
@@ -128,15 +117,12 @@ const HandleDashboard: React.FC = () => {
     }
   };
 
-  // Metrics
   const platforms = getUniquePlatforms(handles);
   const statusCounts = getHandleStatusCounts(handles);
 
-  // Filter handles based on search, platform, and status
   useEffect(() => {
     let result = [...handles];
 
-    // Filter by search term
     if (searchTerm) {
       const lowerCaseSearch = searchTerm.toLowerCase();
       result = result.filter((handle) =>
@@ -144,12 +130,10 @@ const HandleDashboard: React.FC = () => {
       );
     }
 
-    // Filter by platform
     if (selectedPlatform !== 'all') {
       result = filterHandlesByPlatform(result, selectedPlatform);
     }
 
-    // Filter by status
     if (selectedStatuses.length > 0 && selectedStatuses.length < 3) {
       result = result.filter((handle) => selectedStatuses.includes(handle.status));
     }
@@ -157,7 +141,6 @@ const HandleDashboard: React.FC = () => {
     setFilteredHandles(result);
   }, [handles, searchTerm, selectedPlatform, selectedStatuses]);
 
-  // Handlers
   const handleAddHandle = async (formData: HandleFormData) => {
     if (!user) {
       toast({
@@ -171,12 +154,14 @@ const HandleDashboard: React.FC = () => {
     try {
       const handleId = formData.id || uuidv4();
       
+      const platform = formData.platform as 'twitter' | 'instagram' | 'twitch' | 'tiktok';
+      
       const { data, error } = await supabase
         .from('handles')
         .insert({
           id: handleId,
           name: formData.name,
-          platform: formData.platform,
+          platform: platform,
           status: 'monitoring',
           user_id: user.id,
           notifications_enabled: true
@@ -186,7 +171,6 @@ const HandleDashboard: React.FC = () => {
       
       if (error) throw error;
       
-      // Call the check handle endpoint to start monitoring
       try {
         await fetch(`https://mausvzbzorurkcoruhev.supabase.co/functions/v1/check-handles`, {
           method: 'POST',
@@ -198,14 +182,12 @@ const HandleDashboard: React.FC = () => {
         });
       } catch (checkError) {
         console.error('Error checking handle:', checkError);
-        // Continue anyway, as the handle is still created
       }
       
-      // Add the new handle to the local state
       const newHandle: Handle = {
         id: handleId,
         name: formData.name,
-        platform: formData.platform,
+        platform: platform,
         status: 'monitoring',
         lastChecked: 'just now',
         notifications: true
@@ -254,7 +236,6 @@ const HandleDashboard: React.FC = () => {
           <Button
             onClick={async () => {
               try {
-                // Re-insert the deleted handle
                 const { error: restoreError } = await supabase
                   .from('handles')
                   .insert({
@@ -331,7 +312,6 @@ const HandleDashboard: React.FC = () => {
     try {
       setLastDeletedHandles([...handles]);
       
-      // Delete all handles for the current user
       const { error } = await supabase
         .from('handles')
         .delete()
@@ -349,7 +329,6 @@ const HandleDashboard: React.FC = () => {
           <Button
             onClick={async () => {
               try {
-                // Re-insert all deleted handles
                 const handleData = lastDeletedHandles.map(h => ({
                   id: h.id,
                   name: h.name,
@@ -411,7 +390,6 @@ const HandleDashboard: React.FC = () => {
         description: 'Checking the availability of your handles...',
       });
       
-      // Call the check-handles edge function to refresh all handles
       const response = await fetch(`https://mausvzbzorurkcoruhev.supabase.co/functions/v1/check-handles`, {
         method: 'POST',
         headers: {
@@ -425,7 +403,6 @@ const HandleDashboard: React.FC = () => {
         throw new Error('Failed to refresh handles');
       }
       
-      // Refetch the handles to get the updated data
       await fetchHandles();
       
       toast({
@@ -452,10 +429,8 @@ const HandleDashboard: React.FC = () => {
     }
 
     try {
-      // Add the handle ID to the refreshing list
       setRefreshingHandles(prev => [...prev, handle.id]);
       
-      // Call the check-handles edge function for a specific handle
       const response = await fetch(`https://mausvzbzorurkcoruhev.supabase.co/functions/v1/check-handles`, {
         method: 'POST',
         headers: {
@@ -469,10 +444,8 @@ const HandleDashboard: React.FC = () => {
         throw new Error('Failed to check handle');
       }
       
-      // Wait a moment to simulate the check
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Refetch the handles to get the updated data
       await fetchHandles();
       
       toast({
@@ -487,7 +460,6 @@ const HandleDashboard: React.FC = () => {
         variant: 'destructive'
       });
     } finally {
-      // Remove the handle ID from the refreshing list
       setRefreshingHandles(prev => prev.filter(id => id !== handle.id));
     }
   };
@@ -531,7 +503,6 @@ const HandleDashboard: React.FC = () => {
     }
   };
 
-  // Auth or loading state
   if (authLoading) {
     return (
       <div className="bg-background rounded-lg border shadow-sm p-4 sm:p-6 flex flex-col items-center justify-center min-h-[400px]">
@@ -541,7 +512,6 @@ const HandleDashboard: React.FC = () => {
     );
   }
 
-  // Loading state for handles
   if (isLoading) {
     return (
       <div className="bg-background rounded-lg border shadow-sm p-4 sm:p-6 flex flex-col items-center justify-center min-h-[400px]">
@@ -565,7 +535,6 @@ const HandleDashboard: React.FC = () => {
         </p>
       </div>
       
-      {/* Dashboard Controls */}
       <HandleDashboardControls
         searchTerm={searchTerm}
         onSearch={handleSearch}
@@ -579,14 +548,12 @@ const HandleDashboard: React.FC = () => {
         onAddHandle={() => setShowAddHandleDialog(true)}
       />
       
-      {/* Status Counts & Action Bar */}
       <HandleActionBar
         statusCounts={statusCounts}
         onClearAll={handleClearAll}
         onRefreshAll={handleRefreshAll}
       />
       
-      {/* Handle Display */}
       <div className="mt-6">
         <Tabs defaultValue="all" className="w-full">
           <TabsList className="grid grid-cols-4 mb-6">
@@ -685,7 +652,6 @@ const HandleDashboard: React.FC = () => {
         </Tabs>
       </div>
       
-      {/* Add Handle Dialog */}
       <Dialog open={showAddHandleDialog} onOpenChange={setShowAddHandleDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -695,7 +661,6 @@ const HandleDashboard: React.FC = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Delete All Confirmation Dialog */}
       <Dialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
