@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Twitter, 
@@ -8,7 +7,7 @@ import {
   Trash2,
   CircleCheck,
   XCircle,
-  Clock,
+  Monitor,
   Bell,
   BellOff,
   RefreshCw
@@ -21,19 +20,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
 
 // Add Twitch logo import:
 import { Twitch } from 'lucide-react';
-
-interface HandleItemProps {
-  handle: Handle;
-  isRefreshing?: boolean;
-  onEdit?: (handle: Handle) => void;
-  onDelete: (handle: Handle) => void;
-  onToggleNotifications: (handle: Handle) => void;
-  onCheckHandle?: (handle: Handle) => void;
-}
 
 const getPlatformIcon = (platform: string) => {
   switch (platform) {
@@ -50,43 +46,53 @@ const getPlatformIcon = (platform: string) => {
   }
 };
 
-const getStatusComponent = (status: string) => {
-  switch (status) {
-    case 'available':
-      return (
-        <div className="flex items-center text-green-600">
-          <CircleCheck className="h-4 w-4 mr-1" />
-          <span className="bg-green-100 px-2 py-0.5 rounded-full text-xs">Available</span>
-        </div>
-      );
-    case 'unavailable':
-      return (
-        <div className="flex items-center text-red-600">
-          <XCircle className="h-4 w-4 mr-1" />
-          <span className="bg-red-100 px-2 py-0.5 rounded-full text-xs">Taken</span>
-        </div>
-      );
-    case 'monitoring':
-      return (
-        <div className="flex items-center text-amber-600 animate-pulse-slow">
-          <Clock className="h-4 w-4 mr-1" />
-          <span className="bg-yellow-100 px-2 py-0.5 rounded-full text-xs">Monitoring</span>
-        </div>
-      );
-    default:
-      return null;
-  }
+const getStatusComponent = (status: string, isMonitoring: boolean) => {
+  const statusBadge = (
+    <span 
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+        status === 'available' 
+          ? 'bg-green-100 text-green-800' 
+          : 'bg-red-100 text-red-800'
+      }`}
+    >
+      {status === 'available' ? 'Available' : 'Taken'}
+    </span>
+  );
+
+  const monitoringBadge = isMonitoring ? (
+    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+      <Monitor className="h-3 w-3 mr-1" />
+      Monitoring
+    </span>
+  ) : null;
+
+  return (
+    <div className="flex items-center">
+      {statusBadge}
+      {monitoringBadge}
+    </div>
+  );
 };
+
+interface HandleItemProps {
+  handle: Handle;
+  isRefreshing?: boolean;
+  onEdit?: (handle: Handle) => void;
+  onDelete: (handle: Handle) => void;
+  onToggleNotifications: (handle: Handle) => void;
+  onToggleMonitoring?: (handle: Handle) => void;
+  onCheckHandle?: (handle: Handle) => void;
+}
 
 const HandleItem = ({ 
   handle, 
   isRefreshing = false, 
   onEdit, 
   onDelete, 
-  onToggleNotifications, 
+  onToggleNotifications,
+  onToggleMonitoring,
   onCheckHandle 
 }: HandleItemProps) => {
-  // Add these event handlers to prevent default behavior and call the passed function
   const handleCheckClick = (e: React.MouseEvent) => {
     e.preventDefault();
     if (onCheckHandle) {
@@ -94,6 +100,14 @@ const HandleItem = ({
     }
   };
 
+  const handleToggleMonitoring = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onToggleMonitoring) {
+      onToggleMonitoring(handle);
+    }
+  };
+
+  // Add these event handlers to prevent default behavior and call the passed function
   const handleToggleNotificationsClick = (e: React.MouseEvent) => {
     e.preventDefault();
     onToggleNotifications(handle);
@@ -125,32 +139,24 @@ const HandleItem = ({
         </div>
       </td>
       <td className="px-4 py-3">
-        <div className="flex items-center space-x-2">
-          {getStatusComponent(handle.status)}
-          
-          {onCheckHandle && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 rounded-full"
-                    onClick={handleCheckClick}
-                    disabled={isRefreshing}
-                    type="button"
-                  >
-                    <RefreshCw className={`h-3 w-3 text-gray-500 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    <span className="sr-only">Check now</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Check availability now</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-        </div>
+        {getStatusComponent(handle.status, Boolean(handle.monitoringEnabled))}
+      </td>
+      <td className="px-4 py-3">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center">
+                <Switch
+                  checked={Boolean(handle.monitoringEnabled)}
+                  onCheckedChange={() => onToggleMonitoring?.(handle)}
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{handle.monitoringEnabled ? 'Disable' : 'Enable'} monitoring</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </td>
       <td className="px-4 py-3 text-sm text-gray-500">
         {isRefreshing ? (
@@ -190,12 +196,6 @@ const HandleItem = ({
               <DropdownMenuItem onClick={handleEditClick}>
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
-              </DropdownMenuItem>
-            )}
-            {onCheckHandle && (
-              <DropdownMenuItem onClick={handleCheckClick} disabled={isRefreshing}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                Check Now
               </DropdownMenuItem>
             )}
             <DropdownMenuItem

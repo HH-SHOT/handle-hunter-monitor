@@ -1,10 +1,8 @@
 
 import React from "react";
 import { Handle } from "../types";
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
-import { Bell, BellOff, RefreshCw, Pencil, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Table, TableHeader, TableBody, TableHead, TableRow } from "@/components/ui/table";
+import HandleItem from "../HandleItem";
 
 interface HandleTableProps {
   handles: Handle[];
@@ -13,7 +11,7 @@ interface HandleTableProps {
   onDelete: (handle: Handle) => void;
   onEdit?: (handle: Handle) => void;
   onToggleNotifications: (handle: Handle) => void;
-  onCheckHandle?: (handle: Handle) => void;
+  onToggleMonitoring: (handle: Handle) => void;
 }
 
 const HandleTable: React.FC<HandleTableProps> = ({
@@ -23,7 +21,7 @@ const HandleTable: React.FC<HandleTableProps> = ({
   onDelete,
   onEdit,
   onToggleNotifications,
-  onCheckHandle,
+  onToggleMonitoring,
 }) => {
   if (loading) {
     return (
@@ -48,8 +46,8 @@ const HandleTable: React.FC<HandleTableProps> = ({
         <TableHeader>
           <TableRow>
             <TableHead>Handle</TableHead>
-            <TableHead>Platform</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Monitoring</TableHead>
             <TableHead>Last Checked</TableHead>
             <TableHead>Notifications</TableHead>
             <TableHead>Actions</TableHead>
@@ -57,73 +55,15 @@ const HandleTable: React.FC<HandleTableProps> = ({
         </TableHeader>
         <TableBody>
           {handles.map(handle => (
-            <TableRow key={handle.id}>
-              <TableCell className="font-medium">@{handle.name}</TableCell>
-              <TableCell>{handle.platform}</TableCell>
-              <TableCell>
-                <span 
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    handle.status === 'available' 
-                      ? 'bg-green-100 text-green-800' 
-                      : handle.status === 'unavailable'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-blue-100 text-blue-800'
-                  }`}
-                >
-                  {handle.status.charAt(0).toUpperCase() + handle.status.slice(1)}
-                </span>
-              </TableCell>
-              <TableCell>
-                {refreshingHandles?.includes(handle.id) ? (
-                  <span className="flex items-center">
-                    <RefreshCw className="h-3 w-3 animate-spin mr-2" />
-                    Checking...
-                  </span>
-                ) : (
-                  handle.lastChecked
-                )}
-              </TableCell>
-              <TableCell>
-                <Button variant="ghost" onClick={() => onToggleNotifications(handle)}>
-                  {handle.notifications ? (
-                    <Bell className="h-4 w-4 text-brand-blue" />
-                  ) : (
-                    <BellOff className="h-4 w-4 text-gray-400" />
-                  )}
-                </Button>
-              </TableCell>
-              <TableCell>
-                <div className="flex space-x-2">
-                  {onCheckHandle && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => onCheckHandle(handle)}
-                            disabled={refreshingHandles?.includes(handle.id)}
-                          >
-                            <RefreshCw className={`h-4 w-4 ${refreshingHandles?.includes(handle.id) ? 'animate-spin' : ''}`} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Check availability now</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                  {onEdit && (
-                    <Button variant="ghost" size="sm" onClick={() => onEdit(handle)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button variant="ghost" size="sm" onClick={() => onDelete(handle)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
+            <HandleItem
+              key={handle.id}
+              handle={handle}
+              isRefreshing={refreshingHandles?.includes(handle.id)}
+              onDelete={onDelete}
+              onEdit={onEdit}
+              onToggleNotifications={onToggleNotifications}
+              onToggleMonitoring={onToggleMonitoring}
+            />
           ))}
         </TableBody>
       </Table>

@@ -2,9 +2,10 @@ export interface Handle {
   id: string;
   name: string;
   platform: 'twitter' | 'instagram' | 'twitch' | 'tiktok';
-  status: 'available' | 'unavailable' | 'monitoring';
+  status: HandleStatus;
   lastChecked: string;
   notifications: boolean;
+  monitoringEnabled?: boolean;
 }
 
 export type HandleStatus = 'available' | 'unavailable' | 'monitoring';
