@@ -1,4 +1,3 @@
-
 // A simple priority queue implementation for managing API requests
 // This helps us respect rate limits and implement exponential backoff
 
@@ -142,6 +141,23 @@ export class RequestQueue {
     };
   }
 }
+
+// Add cache invalidation handling
+interface CacheConfig {
+  ttl: {
+    available: number;     // Cache time for available handles
+    unavailable: number;   // Cache time for unavailable handles
+    monitoring: number;    // Cache time for monitored handles
+  }
+}
+
+export const defaultCacheConfig: CacheConfig = {
+  ttl: {
+    available: 30 * 60 * 1000,    // 30 minutes
+    unavailable: 2 * 60 * 60 * 1000, // 2 hours
+    monitoring: 5 * 60 * 1000     // 5 minutes
+  }
+};
 
 // Create a singleton instance
 export const requestQueue = new RequestQueue(5);

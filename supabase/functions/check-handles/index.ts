@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
 import { PLATFORMS } from './platform-config.ts';
@@ -13,7 +12,6 @@ import {
 import { initLogger, LogLevel } from './logger.ts';
 import { requestQueue } from './queue-manager.ts';
 
-// CORS headers for cross-origin requests
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -22,7 +20,6 @@ const corsHeaders = {
   'X-Frame-Options': 'DENY'
 };
 
-// Initialize the Supabase client
 function initSupabaseClient() {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -34,7 +31,6 @@ function initSupabaseClient() {
   return createClient(supabaseUrl, supabaseKey);
 }
 
-// Initialize logger
 let logger = null;
 
 function getLogger(supabaseClient: ReturnType<typeof createClient>) {
@@ -45,7 +41,6 @@ function getLogger(supabaseClient: ReturnType<typeof createClient>) {
   return logger;
 }
 
-// Handler for checking individual handle
 async function handleSingleHandleCheck(
   supabaseClient: ReturnType<typeof createClient>, 
   handleId: string
@@ -76,7 +71,6 @@ async function handleSingleHandleCheck(
     );
   }
   
-  // Check for cached result
   if (handle.cached) {
     logger.info(`Using cached result for handle ${handle.id}`, {
       handleId: handle.id,
@@ -101,20 +95,17 @@ async function handleSingleHandleCheck(
     );
   }
   
-  // Add to queue with high priority
   requestQueue.enqueue({
     id: handle.id,
     platform: handle.platform,
     name: handle.name,
-    priority: 3 // High priority for direct user requests
+    priority: 3
   });
   
-  // Process the queue and get results
   const results = await processBatchedHandleChecks(supabaseClient, [handle], 1);
   const newStatus = results[handle.id];
   const lastChecked = new Date().toISOString();
   
-  // Update the handle status in the database
   await updateHandleStatus(supabaseClient, handle.id, newStatus, lastChecked);
   
   return new Response(
@@ -132,7 +123,6 @@ async function handleSingleHandleCheck(
   );
 }
 
-// Handler for refreshing all handles
 async function handleRefreshAllHandles(supabaseClient: ReturnType<typeof createClient>) {
   const logger = getLogger(supabaseClient);
   logger.info("Manually refreshing all handle availability statuses...");
@@ -149,10 +139,8 @@ async function handleRefreshAllHandles(supabaseClient: ReturnType<typeof createC
   
   logger.info(`Found ${handles.length} handles to check`);
   
-  // Process all handles in batches
   const results = await processBatchedHandleChecks(supabaseClient, handles, 5);
   
-  // Update all handle statuses in the database
   const processedResults = [];
   for (const handle of handles) {
     if (results[handle.id]) {
@@ -180,7 +168,6 @@ async function handleRefreshAllHandles(supabaseClient: ReturnType<typeof createC
     }
   }
   
-  // Cleanup: clear expired cache entries and flush logs
   EdgeRuntime.waitUntil(clearExpiredCache(supabaseClient));
   EdgeRuntime.waitUntil(flushLogs(supabaseClient));
   
@@ -194,7 +181,6 @@ async function handleRefreshAllHandles(supabaseClient: ReturnType<typeof createC
   );
 }
 
-// Handler for scheduled checks
 async function handleScheduledChecks(supabaseClient: ReturnType<typeof createClient>) {
   const logger = getLogger(supabaseClient);
   logger.info("Running scheduled handle checks");
@@ -211,15 +197,12 @@ async function handleScheduledChecks(supabaseClient: ReturnType<typeof createCli
   
   logger.info(`Found ${handles.length} handles to check for scheduled run`);
   
-  // Filter handles that are in 'monitoring' status
   const handlesToCheck = handles.filter(handle => handle.status === 'monitoring');
   
   logger.info(`${handlesToCheck.length} handles are in monitoring status and will be checked`);
   
-  // Process all handles in batches
   const results = await processBatchedHandleChecks(supabaseClient, handlesToCheck, 5);
   
-  // Update all handle statuses in the database
   const processedResults = [];
   const availableHandles = [];
   
@@ -257,7 +240,6 @@ async function handleScheduledChecks(supabaseClient: ReturnType<typeof createCli
     }
   }
   
-  // Cleanup: clear expired cache entries and flush logs
   EdgeRuntime.waitUntil(clearExpiredCache(supabaseClient));
   EdgeRuntime.waitUntil(flushLogs(supabaseClient));
   
@@ -272,15 +254,12 @@ async function handleScheduledChecks(supabaseClient: ReturnType<typeof createCli
   );
 }
 
-// Main server function
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Initialize Supabase client
     const supabaseClient = initSupabaseClient();
     const logger = getLogger(supabaseClient);
     
@@ -291,13 +270,13 @@ serve(async (req) => {
     
     logger.info(`Request params:`, { refresh, handleId, scheduled });
     
-    // Route the request to the appropriate handler
+    let response;
     if (scheduled) {
-      return await handleScheduledChecks(supabaseClient);
+      response = await handleScheduledChecks(supabaseClient);
     } else if (handleId) {
-      return await handleSingleHandleCheck(supabaseClient, handleId);
+      response = await handleSingleHandleCheck(supabaseClient, handleId);
     } else if (refresh) {
-      return await handleRefreshAllHandles(supabaseClient);
+      response = await handleRefreshAllHandles(supabaseClient);
     } else {
       logger.warn("Invalid request: missing required parameters");
       return new Response(
@@ -305,6 +284,10 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
+    
+    EdgeRuntime.waitUntil(logger.flush());
+    
+    return response;
   } catch (error) {
     console.error("Error processing request:", error);
     
@@ -312,10 +295,5 @@ serve(async (req) => {
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
-  } finally {
-    // Make sure to flush any remaining logs
-    if (logger) {
-      EdgeRuntime.waitUntil(logger.flush());
-    }
   }
 });

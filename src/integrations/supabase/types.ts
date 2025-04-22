@@ -30,6 +30,82 @@ export type Database = {
         }
         Relationships: []
       }
+      handle_cache: {
+        Row: {
+          checked_at: string
+          expires_at: string
+          handle_id: string
+          name: string
+          platform: string
+          status: string
+        }
+        Insert: {
+          checked_at: string
+          expires_at: string
+          handle_id: string
+          name: string
+          platform: string
+          status: string
+        }
+        Update: {
+          checked_at?: string
+          expires_at?: string
+          handle_id?: string
+          name?: string
+          platform?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "handle_cache_handle_id_fkey"
+            columns: ["handle_id"]
+            isOneToOne: true
+            referencedRelation: "handles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      handle_check_logs: {
+        Row: {
+          created_at: string
+          details: Json | null
+          handle_id: string | null
+          handle_name: string | null
+          id: string
+          level: string
+          message: string
+          platform: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          handle_id?: string | null
+          handle_name?: string | null
+          id?: string
+          level: string
+          message: string
+          platform?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          handle_id?: string | null
+          handle_name?: string | null
+          id?: string
+          level?: string
+          message?: string
+          platform?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "handle_check_logs_handle_id_fkey"
+            columns: ["handle_id"]
+            isOneToOne: false
+            referencedRelation: "handles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       handle_history: {
         Row: {
           checked_at: string

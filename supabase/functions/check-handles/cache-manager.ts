@@ -1,4 +1,3 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
 
 // Interface for cached check results
@@ -33,14 +32,13 @@ export class CacheManager {
     handleId: string,
     handleName: string,
     platform: string,
-    status: 'available' | 'unavailable'
+    status: 'available' | 'unavailable' | 'monitoring'
   ): Promise<void> {
     const now = new Date();
     const ttl = CACHE_TTL[status];
     const expiresAt = new Date(now.getTime() + ttl);
     
     try {
-      // Store in Supabase table
       const { error } = await this.supabaseClient
         .from('handle_cache')
         .upsert({

@@ -8,196 +8,149 @@ export enum LogLevel {
   ERROR = 'error'
 }
 
-export interface LogEntry {
-  level: LogLevel;
-  message: string;
-  platform?: string;
-  handleName?: string;
-  handleId?: string;
-  details?: Record<string, any>;
-  timestamp: string;
-}
-
 export class Logger {
   private supabaseClient: ReturnType<typeof createClient>;
-  private context: Record<string, any> = {};
-  private bufferSize = 10;
-  private logBuffer: LogEntry[] = [];
+  private logBuffer: Array<{
+    level: LogLevel;
+    message: string;
+    details?: any;
+    platform?: string;
+    handleName?: string;
+    handleId?: string;
+  }> = [];
   private minLevel: LogLevel = LogLevel.INFO;
   
   constructor(supabaseClient: ReturnType<typeof createClient>) {
     this.supabaseClient = supabaseClient;
   }
   
-  // Set minimum log level
-  setMinLevel(level: LogLevel): void {
+  setMinLevel(level: LogLevel) {
     this.minLevel = level;
   }
   
-  // Set context data to be included with all logs
-  setContext(context: Record<string, any>): void {
-    this.context = { ...this.context, ...context };
+  private shouldLog(level: LogLevel): boolean {
+    const levels = Object.values(LogLevel);
+    return levels.indexOf(level) >= levels.indexOf(this.minLevel);
   }
   
-  // Clear context data
-  clearContext(): void {
-    this.context = {};
+  private async logToDb(
+    level: LogLevel,
+    message: string,
+    details?: any,
+    platform?: string,
+    handleName?: string,
+    handleId?: string
+  ) {
+    try {
+      const { error } = await this.supabaseClient
+        .from('handle_check_logs')
+        .insert({
+          level,
+          message,
+          details,
+          platform,
+          handle_name: handleName,
+          handle_id: handleId
+        });
+        
+      if (error) {
+        console.error(`Error writing to log: ${error.message}`);
+      }
+    } catch (error) {
+      console.error(`Failed to write to log: ${error.message}`);
+    }
   }
   
-  // Log a message with debug level
-  debug(message: string, data?: Record<string, any>): void {
-    this.log(LogLevel.DEBUG, message, data);
-  }
-  
-  // Log a message with info level
-  info(message: string, data?: Record<string, any>): void {
-    this.log(LogLevel.INFO, message, data);
-  }
-  
-  // Log a message with warning level
-  warn(message: string, data?: Record<string, any>): void {
-    this.log(LogLevel.WARN, message, data);
-  }
-  
-  // Log a message with error level
-  error(message: string, data?: Record<string, any>): void {
-    this.log(LogLevel.ERROR, message, data);
-  }
-  
-  // Log API request details
-  logApiRequest(
-    platform: string,
-    handleName: string,
-    handleId: string | undefined,
-    url: string,
-    status: number,
-    success: boolean,
-    responseData?: any
-  ): void {
-    const level = success ? LogLevel.INFO : LogLevel.WARN;
-    const message = `${platform} API request for handle ${handleName}: ${status} ${success ? 'success' : 'failed'}`;
-    
-    this.log(level, message, {
-      platform,
-      handleName,
-      handleId,
-      url,
-      status,
-      success,
-      responseData
-    });
-  }
-  
-  // Log platform response pattern changes
-  logResponsePattern(
-    platform: string,
-    handleName: string,
-    patternType: 'available' | 'unavailable' | 'unknown',
-    pattern: string,
-    found: boolean
-  ): void {
-    if (!found && patternType !== 'unknown') {
-      // Only log when expected patterns were not found
-      this.log(LogLevel.WARN, `${platform} response pattern change detected for ${patternType} handles`, {
-        platform,
-        handleName,
-        patternType,
-        pattern
+  debug(message: string, context?: {
+    platform?: string;
+    handleName?: string;
+    handleId?: string;
+    details?: any;
+  }) {
+    if (this.shouldLog(LogLevel.DEBUG)) {
+      console.debug(message);
+      this.logBuffer.push({
+        level: LogLevel.DEBUG,
+        message,
+        ...context
       });
     }
   }
   
-  // Internal log method
-  private log(level: LogLevel, message: string, data?: Record<string, any>): void {
-    // Check log level
-    if (this.shouldLog(level)) {
-      console.log(`[${level.toUpperCase()}] ${message}`);
-      if (data) {
-        console.log(data);
-      }
-      
-      // Create log entry
-      const logEntry: LogEntry = {
-        level,
-        message,
-        ...this.extractPlatformData(data),
-        details: data,
-        timestamp: new Date().toISOString()
-      };
-      
-      // Add context
-      if (Object.keys(this.context).length > 0) {
-        logEntry.details = { ...logEntry.details, context: this.context };
-      }
-      
-      // Add to buffer
-      this.logBuffer.push(logEntry);
-      
-      // Flush if buffer is full
-      if (this.logBuffer.length >= this.bufferSize) {
-        this.flush();
-      }
-    }
-  }
-  
-  // Extract platform and handle data from log details
-  private extractPlatformData(data?: Record<string, any>): {
+  info(message: string, context?: {
     platform?: string;
     handleName?: string;
     handleId?: string;
-  } {
-    if (!data) return {};
-    
-    return {
-      platform: data.platform,
-      handleName: data.handleName,
-      handleId: data.handleId
-    };
+    details?: any;
+  }) {
+    if (this.shouldLog(LogLevel.INFO)) {
+      console.info(message);
+      this.logBuffer.push({
+        level: LogLevel.INFO,
+        message,
+        ...context
+      });
+    }
   }
   
-  // Check if log level should be logged
-  private shouldLog(level: LogLevel): boolean {
-    const levels = [LogLevel.DEBUG, LogLevel.INFO, LogLevel.WARN, LogLevel.ERROR];
-    const minLevelIndex = levels.indexOf(this.minLevel);
-    const levelIndex = levels.indexOf(level);
-    
-    return levelIndex >= minLevelIndex;
+  warn(message: string, context?: {
+    platform?: string;
+    handleName?: string;
+    handleId?: string;
+    details?: any;
+  }) {
+    if (this.shouldLog(LogLevel.WARN)) {
+      console.warn(message);
+      this.logBuffer.push({
+        level: LogLevel.WARN,
+        message,
+        ...context
+      });
+    }
   }
   
-  // Flush log buffer to database
-  async flush(): Promise<void> {
+  error(message: string, context?: {
+    platform?: string;
+    handleName?: string;
+    handleId?: string;
+    details?: any;
+  }) {
+    if (this.shouldLog(LogLevel.ERROR)) {
+      console.error(message);
+      this.logBuffer.push({
+        level: LogLevel.ERROR,
+        message,
+        ...context
+      });
+    }
+  }
+  
+  // Flush logs to database
+  async flush() {
     if (this.logBuffer.length === 0) return;
     
-    const logsToFlush = [...this.logBuffer];
+    const logs = [...this.logBuffer];
     this.logBuffer = [];
     
     try {
       const { error } = await this.supabaseClient
         .from('handle_check_logs')
-        .insert(logsToFlush.map(log => ({
-          level: log.level,
-          message: log.message,
-          platform: log.platform,
-          handle_name: log.handleName,
-          handle_id: log.handleId,
-          details: log.details,
-          created_at: log.timestamp
-        })));
+        .insert(logs);
         
       if (error) {
         console.error(`Error flushing logs: ${error.message}`);
-        // Put logs back in buffer
-        this.logBuffer = [...logsToFlush, ...this.logBuffer];
+        // Put logs back in buffer if flush failed
+        this.logBuffer = [...logs, ...this.logBuffer];
       }
     } catch (error) {
       console.error(`Failed to flush logs: ${error.message}`);
-      // Put logs back in buffer
-      this.logBuffer = [...logsToFlush, ...this.logBuffer];
+      // Put logs back in buffer if flush failed
+      this.logBuffer = [...logs, ...this.logBuffer];
     }
   }
 }
 
-// Function to initialize the logger
+// Initialize logger
 export function initLogger(supabaseClient: ReturnType<typeof createClient>): Logger {
   return new Logger(supabaseClient);
 }
