@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { Handle } from './types';
 import HandleItem from './HandleItem';
-import { toast } from 'react-toastify';
+import { toast } from "@/hooks/use-toast";
 
 interface HandleListProps {
   handles: Handle[];
@@ -42,9 +43,17 @@ const HandleList: React.FC<HandleListProps> = ({
   // Add error toast for rate limits
   const handleRefreshError = (error: any) => {
     if (error?.message?.includes('rate limit')) {
-      toast.error('Rate limit reached. Please try again in a few minutes.');
+      toast({
+        title: "Rate Limit Reached",
+        description: "Please try again in a few minutes.",
+        variant: "destructive"
+      });
     } else {
-      toast.error('Failed to refresh handles. Please try again.');
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh handles. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
