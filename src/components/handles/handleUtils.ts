@@ -28,6 +28,7 @@ export const formatHandlesFromDb = (data: DbHandle[]): Handle[] =>
     status: convertToStatusType(handle.status),
     lastChecked: handle.last_checked ? new Date(handle.last_checked).toLocaleString() : 'never',
     notifications: handle.notifications_enabled !== null ? handle.notifications_enabled : true,
+    monitoringEnabled: handle.monitoring_enabled !== null ? handle.monitoring_enabled : true
   }));
 
 // Get unique platforms from handles

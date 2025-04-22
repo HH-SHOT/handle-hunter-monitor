@@ -23,6 +23,13 @@ export const useHandleOperations = () => {
     try {
       const handleId = formData.id || uuidv4();
       
+      console.log('Adding handle:', {
+        handleId,
+        name: formData.name,
+        platform: formData.platform,
+        userId: user.id
+      });
+      
       const { error } = await supabase
         .from('handles')
         .insert({
@@ -37,8 +44,12 @@ export const useHandleOperations = () => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error details:', error);
+        throw error;
+      }
       
+      console.log('Handle added successfully, checking availability...');
       await checkHandle(handleId);
       
       toast({
