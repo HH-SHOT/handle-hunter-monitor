@@ -35,6 +35,61 @@ setInterval(() => {
   }
 }, RESET_INTERVAL);
 
+// Check Twitter handle directly using the API
+async function checkTwitterHandleWithAPI(handle: string): Promise<boolean> {
+  console.log(`Checking Twitter handle ${handle} using Twitter API`);
+  try {
+    // Twitter API requires bearer token for authentication
+    const bearerToken = Deno.env.get("TWITTER_BEARER_TOKEN");
+    if (!bearerToken) {
+      console.error("Missing TWITTER_BEARER_TOKEN environment variable");
+      throw new Error("Twitter API authentication not configured");
+    }
+
+    const apiUrl = `https://api.twitter.com/2/users/by/username/${handle}`;
+    console.log(`Making request to Twitter API: ${apiUrl}`);
+    
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${bearerToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    console.log(`Twitter API response status: ${response.status}`);
+    
+    if (response.status === 404) {
+      console.log(`✅ Twitter API indicates ${handle} is available (404 Not Found)`);
+      return true; // Handle is available
+    }
+    
+    if (response.status === 200) {
+      console.log(`❌ Twitter API indicates ${handle} is taken (200 OK)`);
+      return false; // Handle is taken
+    }
+    
+    // Handle rate limiting and other status codes
+    if (response.status === 429) {
+      console.error(`⚠️ Twitter API rate limit exceeded`);
+      throw new Error("Twitter API rate limit exceeded");
+    }
+    
+    // Log other status codes for debugging
+    console.warn(`⚠️ Twitter API returned unexpected status code: ${response.status}`);
+    
+    // Get response body for more information
+    const responseBody = await response.json();
+    console.log(`Twitter API response body:`, responseBody);
+    
+    // Default to unavailable for safety
+    return false;
+  } catch (error) {
+    console.error(`Error checking Twitter handle with API:`, error);
+    throw error;
+  }
+}
+
 // Initial HEAD request to check availability (faster)
 export async function checkHandleWithHeadRequest(url: string): Promise<boolean | null> {
   try {
@@ -129,17 +184,28 @@ export async function checkHandleAvailability(handle: string, platform: string, 
     return 'unavailable';
   }
 
-  // Construct the URL correctly based on platform configuration
-  let url = '';
-  if (platformConfig.requiresAtSymbol) {
-    url = platformConfig.url + (cleanHandle.startsWith('@') ? cleanHandle : `@${cleanHandle}`);
-  } else {
-    url = platformConfig.url + cleanHandle;
-  }
-  
-  console.log(`Constructed URL for checking: ${url}`);
-
   try {
+    // Use Twitter API directly for Twitter handles
+    if (platform === 'twitter' && platformConfig.apiEndpoint) {
+      try {
+        const isAvailable = await checkTwitterHandleWithAPI(cleanHandle);
+        return isAvailable ? 'available' : 'unavailable';
+      } catch (error) {
+        console.error(`Error using Twitter API, falling back to content analysis:`, error);
+        // Fall back to regular content analysis if API fails
+      }
+    }
+    
+    // Construct the URL correctly based on platform configuration
+    let url = '';
+    if (platformConfig.requiresAtSymbol) {
+      url = platformConfig.url + (cleanHandle.startsWith('@') ? cleanHandle : `@${cleanHandle}`);
+    } else {
+      url = platformConfig.url + cleanHandle;
+    }
+    
+    console.log(`Constructed URL for checking: ${url}`);
+
     // First try with HEAD request (but skip for Instagram, Twitter/X as they're less reliable)
     let headResult = null;
     if (platform !== 'instagram' && platform !== 'twitter') {

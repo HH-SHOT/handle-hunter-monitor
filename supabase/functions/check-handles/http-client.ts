@@ -1,4 +1,3 @@
-
 import { getRandomUserAgent, generateSessionId, createProxyUrl } from './proxy-config.ts';
 
 // Function to send a request through the Bright Data proxy
@@ -102,4 +101,58 @@ export async function getHtmlWithRetries(url: string, maxRetries = 2): Promise<{
   }
   
   throw new Error(`Failed to fetch ${url} after ${maxRetries + 1} attempts`);
+}
+
+// New function for Twitter API calls with proper error handling and retries
+export async function callTwitterApi(endpoint: string, maxRetries = 2): Promise<Response> {
+  const bearerToken = Deno.env.get("TWITTER_BEARER_TOKEN");
+  if (!bearerToken) {
+    throw new Error("TWITTER_BEARER_TOKEN environment variable is not set");
+  }
+  
+  let retries = 0;
+  
+  while (retries <= maxRetries) {
+    try {
+      console.log(`Attempt ${retries + 1}/${maxRetries + 1} to call Twitter API: ${endpoint}`);
+      
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${bearerToken}`,
+          'Content-Type': 'application/json',
+          'User-Agent': getRandomUserAgent()
+        }
+      });
+      
+      // If we're rate limited, wait and retry
+      if (response.status === 429) {
+        const resetTime = response.headers.get('x-rate-limit-reset');
+        const waitTime = resetTime ? (parseInt(resetTime) * 1000) - Date.now() : 60000;
+        console.log(`Rate limited. Waiting ${Math.floor(waitTime/1000)} seconds before retrying...`);
+        retries++;
+        if (retries > maxRetries) {
+          console.error(`All ${maxRetries + 1} attempts to call Twitter API failed due to rate limiting`);
+          return response; // Return the rate limited response
+        }
+        // Wait until rate limit resets (or at least 60 seconds)
+        await new Promise(resolve => setTimeout(resolve, Math.max(waitTime, 60000)));
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      retries++;
+      if (retries > maxRetries) {
+        console.error(`All ${maxRetries + 1} attempts to call Twitter API failed`);
+        throw error;
+      }
+      
+      console.log(`Request failed, retrying (${retries}/${maxRetries})...`);
+      // Exponential backoff: 1s, 2s, 4s, etc.
+      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
+    }
+  }
+  
+  throw new Error(`Failed to call Twitter API after ${maxRetries + 1} attempts`);
 }

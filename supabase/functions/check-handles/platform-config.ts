@@ -5,6 +5,7 @@ export interface PlatformConfig {
   availableIndicators: string[];
   takenIndicators: string[];
   requiresAtSymbol?: boolean;
+  apiEndpoint?: string;
 }
 
 export const PLATFORMS: Record<string, PlatformConfig> = {
@@ -35,7 +36,8 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
       "Follow",
       "Followers",
       "Following"
-    ]
+    ],
+    apiEndpoint: "https://api.twitter.com/2/users/by/username/"
   },
   instagram: {
     url: "https://www.instagram.com/",

@@ -67,4 +67,3 @@ timeout_seconds = 15
 
 [functions.handle-scheduler]
 verify_jwt = false
-
