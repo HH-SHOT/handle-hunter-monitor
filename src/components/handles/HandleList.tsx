@@ -11,6 +11,7 @@ interface HandleListProps {
   onDelete: (handle: Handle) => void;
   onEdit?: (handle: Handle) => void;
   onToggleNotifications: (handle: Handle) => void;
+  onToggleMonitoring: (handle: Handle) => void;
   onCheckHandle?: (handle: Handle) => void;
 }
 
@@ -21,6 +22,7 @@ const HandleList: React.FC<HandleListProps> = ({
   onDelete,
   onEdit,
   onToggleNotifications,
+  onToggleMonitoring,
   onCheckHandle,
 }) => {
   if (loading) {
@@ -64,6 +66,7 @@ const HandleList: React.FC<HandleListProps> = ({
           <tr className="border-b">
             <th className="text-left px-4 py-3 font-medium">Handle</th>
             <th className="text-left px-4 py-3 font-medium">Status</th>
+            <th className="text-left px-4 py-3 font-medium">Monitoring</th>
             <th className="text-left px-4 py-3 font-medium">Last Checked</th>
             <th className="text-left px-4 py-3 font-medium">Notifications</th>
             <th className="text-right px-4 py-3 font-medium">Actions</th>
@@ -77,7 +80,7 @@ const HandleList: React.FC<HandleListProps> = ({
               onEdit={onEdit ? () => onEdit(handle) : undefined}
               onDelete={() => onDelete(handle)}
               onToggleNotifications={() => onToggleNotifications(handle)}
-              onCheckHandle={onCheckHandle ? () => onCheckHandle(handle) : undefined}
+              onToggleMonitoring={() => onToggleMonitoring(handle)}
               isRefreshing={refreshingHandles?.includes(handle.id)}
             />
           ))}

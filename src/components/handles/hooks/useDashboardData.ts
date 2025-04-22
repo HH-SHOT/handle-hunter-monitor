@@ -17,6 +17,7 @@ export const useDashboardData = () => {
     handleAddHandle,
     handleDeleteHandle,
     handleToggleNotifications,
+    handleToggleMonitoring,
     handleCheckHandle,
     handleRefreshAll,
   } = useHandleOperations();
@@ -36,6 +37,10 @@ export const useDashboardData = () => {
     },
     handleToggleNotifications: async (handle: any) => {
       await handleToggleNotifications(handle);
+      await fetchHandles();
+    },
+    handleToggleMonitoring: async (handle: any) => {
+      await handleToggleMonitoring(handle);
       await fetchHandles();
     },
     handleCheckHandle: async (handle: any) => {

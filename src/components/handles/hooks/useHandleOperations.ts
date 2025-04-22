@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Handle, HandleFormData } from '../types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -121,6 +120,39 @@ export const useHandleOperations = () => {
     }
   };
 
+  const handleToggleMonitoring = async (handle: Handle) => {
+    if (!user) {
+      toast({
+        title: 'Demo Mode',
+        description: 'Monitoring toggles are not available in demo mode. Please sign in.',
+      });
+      return;
+    }
+
+    try {
+      const newMonitoringState = !handle.monitoringEnabled;
+      
+      const { error } = await supabase
+        .from('handles')
+        .update({ monitoring_enabled: newMonitoringState })
+        .eq('id', handle.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: newMonitoringState ? 'Monitoring Enabled' : 'Monitoring Disabled',
+        description: `Monitoring ${newMonitoringState ? 'enabled' : 'disabled'} for @${handle.name}.`,
+      });
+    } catch (error) {
+      console.error('Error toggling monitoring:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update monitoring settings. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const checkHandle = async (handleId: string) => {
     try {
       await fetch(`https://mausvzbzorurkcoruhev.supabase.co/functions/v1/check-handles`, {
@@ -209,6 +241,7 @@ export const useHandleOperations = () => {
     handleAddHandle,
     handleDeleteHandle,
     handleToggleNotifications,
+    handleToggleMonitoring,
     handleCheckHandle,
     handleRefreshAll,
   };

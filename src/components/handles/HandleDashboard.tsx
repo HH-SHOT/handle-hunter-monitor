@@ -19,6 +19,7 @@ const HandleDashboard: React.FC = () => {
     handleAddHandle,
     handleDeleteHandle,
     handleToggleNotifications,
+    handleToggleMonitoring,
     handleCheckHandle,
     handleRefreshAll,
   } = useDashboardData();
@@ -85,6 +86,7 @@ const HandleDashboard: React.FC = () => {
           refreshingHandles={refreshingHandles}
           onDelete={handleDeleteHandle}
           onToggleNotifications={handleToggleNotifications}
+          onToggleMonitoring={handleToggleMonitoring}
           onCheckHandle={handleCheckHandle}
         />
       ) : (
@@ -93,7 +95,7 @@ const HandleDashboard: React.FC = () => {
           refreshingHandles={refreshingHandles}
           onDelete={handleDeleteHandle}
           onToggleNotifications={handleToggleNotifications}
-          onCheckHandle={handleCheckHandle}
+          onToggleMonitoring={handleToggleMonitoring}
         />
       )}
 
