@@ -1,4 +1,3 @@
-
 project_id = "mausvzbzorurkcoruhev"
 
 [api]
@@ -49,6 +48,12 @@ enable_confirmations = true
 enabled = true
 client_id = "env(SUPABASE_AUTH_GITHUB_CLIENT_ID)"
 secret = "env(SUPABASE_AUTH_GITHUB_SECRET)"
+redirect_uri = "http://localhost:54321/auth/v1/callback"
+
+[auth.external.twitch]
+enabled = true
+client_id = "s3sipej9le9a71p75ymkdvna6buk6h"
+secret = "5zrlfmfg6c40rd869klcyl4a2p2cpr"
 redirect_uri = "http://localhost:54321/auth/v1/callback"
 
 [analytics]
