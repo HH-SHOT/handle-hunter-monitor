@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Trash2, RefreshCw } from "lucide-react";
+import { Trash2, RefreshCw, XCircle } from "lucide-react";
 
 interface Props {
   statusCounts: {
@@ -54,12 +54,11 @@ const HandleActionBar: React.FC<Props> = ({
         <RefreshCw className="h-4 w-4" /> Refresh All
       </Button>
       <Button
-        variant="destructive"
+        variant="outline"
         onClick={onClearAll}
-        disabled={isClearing}
-        className="flex items-center gap-2"
+        className="flex items-center gap-2 text-amber-600 border-amber-200 hover:bg-amber-50"
       >
-        <Trash2 className="h-4 w-4" /> Clear All
+        <XCircle className="h-4 w-4" /> Clear History
       </Button>
     </div>
   </div>

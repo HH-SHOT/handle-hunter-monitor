@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Handle, HandleFormData } from '../types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,7 +31,8 @@ export const useHandleOperations = () => {
           platform: formData.platform,
           status: 'monitoring',
           user_id: user.id,
-          notifications_enabled: true
+          notifications_enabled: true,
+          monitoring_enabled: true
         })
         .select()
         .single();
@@ -62,7 +64,7 @@ export const useHandleOperations = () => {
         title: 'Demo Mode',
         description: 'Delete operations are not available in demo mode. Please sign in.',
       });
-      return;
+      return false;
     }
 
     try {
@@ -77,6 +79,7 @@ export const useHandleOperations = () => {
         title: 'Handle Removed',
         description: `@${handle.name} has been removed from monitoring.`,
       });
+      return true;
     } catch (error) {
       console.error('Error deleting handle:', error);
       toast({
@@ -84,6 +87,7 @@ export const useHandleOperations = () => {
         description: 'Failed to remove the handle. Please try again.',
         variant: 'destructive'
       });
+      return false;
     }
   };
 
@@ -93,7 +97,7 @@ export const useHandleOperations = () => {
         title: 'Demo Mode',
         description: 'Notification toggles are not available in demo mode. Please sign in.',
       });
-      return;
+      return false;
     }
 
     try {
@@ -110,6 +114,7 @@ export const useHandleOperations = () => {
         title: newNotificationState ? 'Notifications Enabled' : 'Notifications Disabled',
         description: `Notifications ${newNotificationState ? 'enabled' : 'disabled'} for @${handle.name}.`,
       });
+      return true;
     } catch (error) {
       console.error('Error toggling notifications:', error);
       toast({
@@ -117,6 +122,7 @@ export const useHandleOperations = () => {
         description: 'Failed to update notification settings. Please try again.',
         variant: 'destructive'
       });
+      return false;
     }
   };
 
@@ -126,7 +132,7 @@ export const useHandleOperations = () => {
         title: 'Demo Mode',
         description: 'Monitoring toggles are not available in demo mode. Please sign in.',
       });
-      return;
+      return false;
     }
 
     try {
@@ -143,6 +149,7 @@ export const useHandleOperations = () => {
         title: newMonitoringState ? 'Monitoring Enabled' : 'Monitoring Disabled',
         description: `Monitoring ${newMonitoringState ? 'enabled' : 'disabled'} for @${handle.name}.`,
       });
+      return true;
     } catch (error) {
       console.error('Error toggling monitoring:', error);
       toast({
@@ -150,6 +157,7 @@ export const useHandleOperations = () => {
         description: 'Failed to update monitoring settings. Please try again.',
         variant: 'destructive'
       });
+      return false;
     }
   };
 
@@ -174,7 +182,7 @@ export const useHandleOperations = () => {
         title: 'Demo Mode',
         description: 'Check handle operation is not available in demo mode. Please sign in.',
       });
-      return;
+      return false;
     }
 
     try {
@@ -186,6 +194,7 @@ export const useHandleOperations = () => {
         title: 'Handle Checked',
         description: `@${handle.name} has been checked for availability.`,
       });
+      return true;
     } catch (error) {
       console.error('Error checking handle:', error);
       toast({
@@ -193,6 +202,7 @@ export const useHandleOperations = () => {
         description: 'Failed to check handle. Please try again.',
         variant: 'destructive'
       });
+      return false;
     } finally {
       setRefreshingHandles(prev => prev.filter(id => id !== handle.id));
     }
@@ -204,7 +214,7 @@ export const useHandleOperations = () => {
         title: 'Demo Mode',
         description: 'Refresh operation is not available in demo mode. Please sign in.',
       });
-      return;
+      return false;
     }
 
     try {
@@ -226,6 +236,7 @@ export const useHandleOperations = () => {
         title: 'Handles Refreshed',
         description: 'All handles have been checked for availability.',
       });
+      return true;
     } catch (error) {
       console.error('Error refreshing handles:', error);
       toast({
@@ -233,6 +244,58 @@ export const useHandleOperations = () => {
         description: 'Failed to refresh handles. Please try again.',
         variant: 'destructive'
       });
+      return false;
+    }
+  };
+
+  const handleClearHistory = async () => {
+    if (!user) {
+      toast({
+        title: 'Demo Mode',
+        description: 'Clear history operation is not available in demo mode. Please sign in.',
+      });
+      return false;
+    }
+
+    try {
+      // Only delete handle_history entries for the current user's handles
+      const { data: userHandles, error: handleError } = await supabase
+        .from('handles')
+        .select('id')
+        .eq('user_id', user.id);
+        
+      if (handleError) throw handleError;
+      
+      if (!userHandles || userHandles.length === 0) {
+        toast({
+          title: 'No History',
+          description: 'You have no handle history to clear.',
+        });
+        return false;
+      }
+      
+      const handleIds = userHandles.map(h => h.id);
+      
+      const { error } = await supabase
+        .from('handle_history')
+        .delete()
+        .in('handle_id', handleIds);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'History Cleared',
+        description: 'Your handle history has been cleared successfully.',
+      });
+      return true;
+    } catch (error) {
+      console.error('Error clearing history:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to clear history. Please try again.',
+        variant: 'destructive'
+      });
+      return false;
     }
   };
 
@@ -244,5 +307,6 @@ export const useHandleOperations = () => {
     handleToggleMonitoring,
     handleCheckHandle,
     handleRefreshAll,
+    handleClearHistory,
   };
 };

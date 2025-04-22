@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { getUniquePlatforms, filterHandlesByPlatform } from './handleUtils';
+import { getUniquePlatforms } from './handleUtils';
 import { useDashboardData } from './hooks/useDashboardData';
 import HandleAddDialog from './components/HandleAddDialog';
 import HandleList from './HandleList';
@@ -16,12 +16,14 @@ const HandleDashboard: React.FC = () => {
     refreshingHandles,
     filterOptions,
     setFilterOptions,
+    statusCounts,
     handleAddHandle,
     handleDeleteHandle,
     handleToggleNotifications,
     handleToggleMonitoring,
     handleCheckHandle,
     handleRefreshAll,
+    handleClearHistory,
   } = useDashboardData();
 
   const [showAddHandleDialog, setShowAddHandleDialog] = useState(false);
@@ -42,13 +44,6 @@ const HandleDashboard: React.FC = () => {
     
     return filterOptions.statuses.includes(handle.status);
   });
-
-  const statusCounts = {
-    available: handles.filter(h => h.status === 'available').length,
-    unavailable: handles.filter(h => h.status === 'unavailable').length,
-    monitoring: handles.filter(h => h.status === 'monitoring').length,
-    total: handles.length
-  };
 
   if (isLoading) {
     return (
@@ -76,7 +71,7 @@ const HandleDashboard: React.FC = () => {
 
       <HandleActionBar
         statusCounts={statusCounts}
-        onClearAll={() => {}}
+        onClearAll={handleClearHistory}
         onRefreshAll={handleRefreshAll}
       />
 
@@ -96,6 +91,7 @@ const HandleDashboard: React.FC = () => {
           onDelete={handleDeleteHandle}
           onToggleNotifications={handleToggleNotifications}
           onToggleMonitoring={handleToggleMonitoring}
+          onCheckHandle={handleCheckHandle}
         />
       )}
 

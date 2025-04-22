@@ -1,10 +1,9 @@
 
 import { useState, useEffect } from 'react';
-import { Handle } from '../types';
+import { Handle, FilterOptions } from '../types';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { FilterOptions } from './types';
 
 export const useHandleData = () => {
   const { user, loading: authLoading } = useAuth();

@@ -140,6 +140,7 @@ export type Database = {
           created_at: string
           id: string
           last_checked: string | null
+          monitoring_enabled: boolean | null
           name: string
           notifications_enabled: boolean | null
           platform: string
@@ -150,6 +151,7 @@ export type Database = {
           created_at?: string
           id?: string
           last_checked?: string | null
+          monitoring_enabled?: boolean | null
           name: string
           notifications_enabled?: boolean | null
           platform: string
@@ -160,6 +162,7 @@ export type Database = {
           created_at?: string
           id?: string
           last_checked?: string | null
+          monitoring_enabled?: boolean | null
           name?: string
           notifications_enabled?: boolean | null
           platform?: string

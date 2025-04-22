@@ -20,6 +20,7 @@ export const useDashboardData = () => {
     handleToggleMonitoring,
     handleCheckHandle,
     handleRefreshAll,
+    handleClearHistory,
   } = useHandleOperations();
 
   // After any handle operation, refresh the handles list
@@ -32,24 +33,42 @@ export const useDashboardData = () => {
       return success;
     },
     handleDeleteHandle: async (handle: any) => {
-      await handleDeleteHandle(handle);
-      await fetchHandles();
+      const success = await handleDeleteHandle(handle);
+      if (success) {
+        await fetchHandles();
+      }
+      return success;
     },
     handleToggleNotifications: async (handle: any) => {
-      await handleToggleNotifications(handle);
-      await fetchHandles();
+      const success = await handleToggleNotifications(handle);
+      if (success) {
+        await fetchHandles();
+      }
+      return success;
     },
     handleToggleMonitoring: async (handle: any) => {
-      await handleToggleMonitoring(handle);
-      await fetchHandles();
+      const success = await handleToggleMonitoring(handle);
+      if (success) {
+        await fetchHandles();
+      }
+      return success;
     },
     handleCheckHandle: async (handle: any) => {
-      await handleCheckHandle(handle);
-      await fetchHandles();
+      const success = await handleCheckHandle(handle);
+      if (success) {
+        await fetchHandles();
+      }
+      return success;
     },
     handleRefreshAll: async () => {
-      await handleRefreshAll();
-      await fetchHandles();
+      const success = await handleRefreshAll();
+      if (success) {
+        await fetchHandles();
+      }
+      return success;
+    },
+    handleClearHistory: async () => {
+      return await handleClearHistory();
     },
   };
 
@@ -59,6 +78,7 @@ export const useDashboardData = () => {
     refreshingHandles,
     filterOptions,
     setFilterOptions,
+    statusCounts,
     ...operations,
   };
 };

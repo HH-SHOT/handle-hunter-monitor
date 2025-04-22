@@ -6,7 +6,7 @@ export interface Handle {
   status: HandleStatus;
   lastChecked: string;
   notifications: boolean;
-  monitoringEnabled?: boolean;
+  monitoringEnabled: boolean;
 }
 
 export type HandleStatus = 'available' | 'unavailable' | 'monitoring';

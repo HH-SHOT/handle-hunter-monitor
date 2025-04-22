@@ -13,6 +13,7 @@ interface HandleTableProps {
   onEdit?: (handle: Handle) => void;
   onToggleNotifications: (handle: Handle) => void;
   onToggleMonitoring: (handle: Handle) => void;
+  onCheckHandle?: (handle: Handle) => void;
 }
 
 const HandleTable: React.FC<HandleTableProps> = ({
@@ -23,6 +24,7 @@ const HandleTable: React.FC<HandleTableProps> = ({
   onEdit,
   onToggleNotifications,
   onToggleMonitoring,
+  onCheckHandle,
 }) => {
   if (loading) {
     return (
@@ -42,16 +44,16 @@ const HandleTable: React.FC<HandleTableProps> = ({
   }
 
   return (
-    <div className="overflow-x-auto -mx-6">
+    <div className="overflow-x-auto rounded-lg border border-gray-100 shadow-sm">
       <Table>
-        <TableHeader>
+        <TableHeader className="bg-gray-50">
           <TableRow>
-            <TableHead>Handle</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Monitoring</TableHead>
-            <TableHead>Last Checked</TableHead>
-            <TableHead>Notifications</TableHead>
-            <TableHead>Actions</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider">Handle</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider">Status</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider">Monitoring</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider">Last Checked</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider">Notifications</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -64,6 +66,7 @@ const HandleTable: React.FC<HandleTableProps> = ({
               onEdit={onEdit}
               onToggleNotifications={onToggleNotifications}
               onToggleMonitoring={onToggleMonitoring}
+              onCheckHandle={onCheckHandle}
             />
           ))}
         </TableBody>

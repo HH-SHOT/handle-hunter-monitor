@@ -21,6 +21,7 @@ interface HandleItemProps {
   onDelete: (handle: Handle) => void;
   onToggleNotifications: (handle: Handle) => void;
   onToggleMonitoring: (handle: Handle) => void;
+  onCheckHandle?: (handle: Handle) => void;
 }
 
 const HandleItem = ({
@@ -30,14 +31,22 @@ const HandleItem = ({
   onDelete,
   onToggleNotifications,
   onToggleMonitoring,
+  onCheckHandle,
 }: HandleItemProps) => {
   const handleToggleNotificationsClick = (e: React.MouseEvent) => {
     e.preventDefault();
     onToggleNotifications(handle);
   };
 
+  const handleRefreshClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onCheckHandle && !isRefreshing) {
+      onCheckHandle(handle);
+    }
+  };
+
   return (
-    <tr key={handle.id} className="hover:bg-gray-50">
+    <tr key={handle.id} className="border-b hover:bg-gray-50 transition-colors">
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="rounded-full bg-gray-100 p-1.5">
@@ -50,7 +59,7 @@ const HandleItem = ({
         </div>
       </td>
       <td className="px-4 py-3">
-        <HandleStatus status={handle.status} isMonitoring={Boolean(handle.monitoringEnabled)} />
+        <HandleStatus status={handle.status} isMonitoring={handle.monitoringEnabled} />
       </td>
       <td className="px-4 py-3">
         <TooltipProvider>
@@ -58,7 +67,7 @@ const HandleItem = ({
             <TooltipTrigger asChild>
               <div className="flex items-center">
                 <Switch
-                  checked={Boolean(handle.monitoringEnabled)}
+                  checked={handle.monitoringEnabled}
                   onCheckedChange={() => onToggleMonitoring(handle)}
                 />
               </div>
@@ -69,15 +78,30 @@ const HandleItem = ({
           </Tooltip>
         </TooltipProvider>
       </td>
-      <td className="px-4 py-3 text-sm text-gray-500">
-        {isRefreshing ? (
-          <span className="flex items-center">
-            <RefreshCw className="h-3 w-3 animate-spin mr-2" />
-            Checking...
-          </span>
-        ) : (
-          handle.lastChecked
-        )}
+      <td className="px-4 py-3">
+        <div className="flex items-center space-x-2">
+          <div className="text-sm text-gray-500">
+            {isRefreshing ? (
+              <span className="flex items-center">
+                <RefreshCw className="h-3 w-3 animate-spin mr-2" />
+                Checking...
+              </span>
+            ) : (
+              handle.lastChecked
+            )}
+          </div>
+          {onCheckHandle && !isRefreshing && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefreshClick}
+              className="text-gray-400 hover:text-brand-blue"
+              type="button"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
       </td>
       <td className="px-4 py-3">
         <Button
