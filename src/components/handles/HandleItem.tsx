@@ -86,6 +86,31 @@ const HandleItem = ({
   onToggleNotifications, 
   onCheckHandle 
 }: HandleItemProps) => {
+  // Add these event handlers to prevent default behavior and call the passed function
+  const handleCheckClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onCheckHandle) {
+      onCheckHandle(handle);
+    }
+  };
+
+  const handleToggleNotificationsClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onToggleNotifications(handle);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onDelete(handle);
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onEdit) {
+      onEdit(handle);
+    }
+  };
+
   return (
     <tr key={handle.id} className="hover:bg-gray-50">
       <td className="px-4 py-3">
@@ -111,8 +136,9 @@ const HandleItem = ({
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 rounded-full"
-                    onClick={() => onCheckHandle && onCheckHandle(handle)}
+                    onClick={handleCheckClick}
                     disabled={isRefreshing}
+                    type="button"
                   >
                     <RefreshCw className={`h-3 w-3 text-gray-500 ${isRefreshing ? 'animate-spin' : ''}`} />
                     <span className="sr-only">Check now</span>
@@ -140,8 +166,9 @@ const HandleItem = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onToggleNotifications(handle)}
+          onClick={handleToggleNotificationsClick}
           className={`${handle.notifications ? 'text-brand-blue' : 'text-gray-400'}`}
+          type="button"
         >
           {handle.notifications ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
         </Button>
@@ -149,7 +176,7 @@ const HandleItem = ({
       <td className="px-4 py-3 text-right">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" type="button">
               <span className="sr-only">Actions</span>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M8 9.5C8.82843 9.5 9.5 8.82843 9.5 8C9.5 7.17157 8.82843 6.5 8 6.5C7.17157 6.5 6.5 7.17157 6.5 8C6.5 8.82843 7.17157 9.5 8 9.5Z" fill="currentColor" />
@@ -160,20 +187,20 @@ const HandleItem = ({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {onEdit && (
-              <DropdownMenuItem onClick={() => onEdit && onEdit(handle)}>
+              <DropdownMenuItem onClick={handleEditClick}>
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
               </DropdownMenuItem>
             )}
             {onCheckHandle && (
-              <DropdownMenuItem onClick={() => onCheckHandle && onCheckHandle(handle)} disabled={isRefreshing}>
+              <DropdownMenuItem onClick={handleCheckClick} disabled={isRefreshing}>
                 <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                 Check Now
               </DropdownMenuItem>
             )}
             <DropdownMenuItem
               className="text-red-600"
-              onClick={() => onDelete(handle)}
+              onClick={handleDeleteClick}
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete

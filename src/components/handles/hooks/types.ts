@@ -17,3 +17,6 @@ export interface DashboardData {
     total: number;
   };
 }
+
+// Import the Handle type from the main types file
+import { Handle } from '../types';
