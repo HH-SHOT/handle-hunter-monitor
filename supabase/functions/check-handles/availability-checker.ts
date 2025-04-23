@@ -1,4 +1,3 @@
-
 import { PlatformConfig } from './platform-config.ts';
 import { sendProxiedRequest } from './http-client.ts';
 import { analyzeContent } from './content-analyzer.ts';
@@ -60,6 +59,13 @@ export async function processBatchedHandleChecks(
           platformConfig,
           supabaseClient
         );
+        
+        logger.info(`Final status for ${task.name} on ${task.platform}: ${status}`, {
+          handleId: task.id,
+          platform: task.platform,
+          name: task.name,
+          status: status
+        });
         
         results[task.id] = status;
         requestQueue.complete(task.id);
@@ -397,25 +403,28 @@ export async function checkHandleWithContentAnalysis(
       handleName
     });
     
-    // Check for HTTP redirects or canonical URLs that might indicate a handle change
-    if (response.redirected) {
-      logger.warn(`Request was redirected from ${url} to ${response.url} - this may affect analysis`, {
+    // Log the full content for debugging in case of Twitch issues
+    if (platform === 'twitch') {
+      logger.info(`Twitch content analysis for ${handleName}:`, {
         platform,
         handleName,
-        originalUrl: url,
-        redirectUrl: response.url
+        contentSnippet: html.substring(0, 500) // Log the first 500 chars for debugging
       });
       
-      // If redirected to homepage, the handle likely doesn't exist
-      const urlParts = url.split('/');
-      const lastPart = urlParts[urlParts.length - 1];
+      // Check for the specific error message that indicates availability
+      const twitchUnavailableMessages = [
+        "Sorry. Unless you've got a time machine, that content is unavailable.",
+        "This channel is currently unavailable."
+      ];
       
-      if (!response.url.includes(lastPart)) {
-        logger.info(`Redirected to a page that doesn't include the handle - likely available`, {
-          platform,
-          handleName
-        });
-        return true;
+      for (const message of twitchUnavailableMessages) {
+        if (html.includes(message)) {
+          logger.info(`Found Twitch availability message "${message}" - handle is available`, {
+            platform,
+            handleName
+          });
+          return true;
+        }
       }
     }
     
@@ -474,11 +483,16 @@ export async function checkHandleAvailability(
     if (platform === 'twitch' && platformConfig.useApi) {
       try {
         const isAvailable = await checkTwitchHandleWithAPI(cleanHandle, supabaseClient);
+        logger.info(`Twitch API result for ${handle}: ${isAvailable ? 'available' : 'unavailable'}`, {
+          platform,
+          handleName: handle,
+          result: isAvailable ? 'available' : 'unavailable'
+        });
         return isAvailable ? 'available' : 'unavailable';
       } catch (error) {
         logger.error(`Error using Twitch API, falling back to content analysis:`, {
           platform,
-          handleName: cleanHandle,
+          handleName: handle,
           error
         });
         // Fall back to regular content analysis if API fails
@@ -532,7 +546,7 @@ export async function checkHandleAvailability(
     const contentResult = await checkHandleWithContentAnalysis(
       url,
       platform,
-      cleanHandle,
+      handle,
       platformConfig,
       supabaseClient
     );
@@ -541,14 +555,14 @@ export async function checkHandleAvailability(
     if (contentResult) {
       logger.info(`Final determination for ${handle} on ${platform}: available`, {
         platform,
-        handleName: cleanHandle,
+        handleName: handle,
         result: 'available'
       });
       return 'available';
     } else {
       logger.info(`Final determination for ${handle} on ${platform}: unavailable`, {
         platform,
-        handleName: cleanHandle,
+        handleName: handle,
         result: 'unavailable'
       });
       return 'unavailable';
@@ -557,7 +571,7 @@ export async function checkHandleAvailability(
   } catch (err) {
     logger.error(`Error checking ${platform} handle ${handle}:`, {
       platform,
-      handleName: cleanHandle,
+      handleName: handle,
       error: err
     });
     // If there's an error in the overall process, default to unavailable
