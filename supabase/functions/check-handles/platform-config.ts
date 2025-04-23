@@ -1,4 +1,3 @@
-
 import { PlatformConfig } from './types';
 
 // Load platform config from the shared JSON file
@@ -7,6 +6,7 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
   twitter: {
     url: "https://twitter.com/",
     notFoundText: [
+      "Sorry, that page doesn't exist!",
       "This account doesn't exist",
       "This profile doesn't exist",
       "User not found",
@@ -17,14 +17,14 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
       "doesn't exist. Try searching for another."
     ],
     availableIndicators: [
+      "Sorry, that page doesn't exist!",
       "This account doesn't exist",
       "This profile doesn't exist",
       "User not found",
-      "Hmm...this page doesn't exist",
-      "Account doesn't exist"
+      "Page not found"
     ],
     takenIndicators: [
-      "The latest Tweets from",
+      "joined Twitter",
       "Joined",
       "post_profile",
       "profile-picture",
@@ -32,10 +32,13 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
       "Followers",
       "Following"
     ],
-    apiEndpoint: "https://api.twitter.com/2/users/by/username/",
-    isOptimal: true,
-    checkMethod: 'api',
-    methodNotes: "Uses official Twitter API for accurate username availability checks with proper error codes. Most reliable method."
+    isOptimal: false,
+    checkMethod: 'scraping',
+    methodNotes: "Using web scraping due to Twitter API changes. May be less reliable but avoids API rate limits.",
+    headers: {
+      "User-Agent": "Mozilla/5.0"
+    },
+    useProxy: true
   },
   instagram: {
     url: "https://www.instagram.com/",
@@ -67,6 +70,7 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
   },
   twitch: {
     url: "https://www.twitch.tv/",
+    apiEndpoint: "https://api.twitch.tv/helix/users",
     notFoundText: [
       "This channel is currently unavailable.",
       "Sorry. Unless you've got a time machine, that content is unavailable.",
@@ -88,7 +92,8 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
       "channel",
       "Subscribe",
       "videos",
-      "clips"
+      "clips",
+      "data"
     ],
     useApi: true,
     isOptimal: true,
@@ -133,7 +138,6 @@ export interface PlatformConfig {
   requiresAtSymbol?: boolean;
   apiEndpoint?: string;
   useApi?: boolean;
-  // Documentation about optimal checking method
   isOptimal?: boolean;
   checkMethod: 'api' | 'scraping';
   methodNotes: string;
