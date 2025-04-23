@@ -10,6 +10,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
+import { TableCell, TableRow } from "@/components/ui/table";
 import PlatformIcon from './components/PlatformIcon';
 import HandleStatus from './components/HandleStatus';
 import HandleActions from './components/HandleActions';
@@ -46,8 +47,8 @@ const HandleItem = ({
   };
 
   return (
-    <tr key={handle.id} className="border-b hover:bg-gray-50 transition-colors">
-      <td className="px-4 py-3">
+    <TableRow key={handle.id} className="border-b hover:bg-gray-50 transition-colors">
+      <TableCell className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="rounded-full bg-gray-100 p-1.5">
             <PlatformIcon platform={handle.platform} />
@@ -57,11 +58,11 @@ const HandleItem = ({
             <div className="text-sm text-gray-500">{handle.platform}</div>
           </div>
         </div>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <HandleStatus status={handle.status} isMonitoring={handle.monitoringEnabled} />
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -69,6 +70,7 @@ const HandleItem = ({
                 <Switch
                   checked={handle.monitoringEnabled}
                   onCheckedChange={() => onToggleMonitoring(handle)}
+                  className="data-[state=checked]:bg-brand-blue"
                 />
               </div>
             </TooltipTrigger>
@@ -77,8 +79,8 @@ const HandleItem = ({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <div className="flex items-center space-x-2">
           <div className="text-sm text-gray-500">
             {isRefreshing ? (
@@ -102,8 +104,8 @@ const HandleItem = ({
             </Button>
           )}
         </div>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <Button
           variant="ghost"
           size="sm"
@@ -113,15 +115,15 @@ const HandleItem = ({
         >
           {handle.notifications ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
         </Button>
-      </td>
-      <td className="px-4 py-3 text-right">
+      </TableCell>
+      <TableCell className="px-4 py-3 text-right">
         <HandleActions
           handle={handle}
           onEdit={onEdit}
           onDelete={onDelete}
         />
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 };
 

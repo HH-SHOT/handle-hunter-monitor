@@ -8,11 +8,13 @@ import HandleList from './HandleList';
 import HandleTable from './dashboard/HandleTable';
 import HandleActionBar from './dashboard/HandleActionBar';
 import HandleDashboardControls from './dashboard/HandleDashboardControls';
+import { Card, CardContent } from '@/components/ui/card';
 
 const HandleDashboard: React.FC = () => {
   const {
     handles,
     isLoading,
+    isRefetching,
     refreshingHandles,
     filterOptions,
     setFilterOptions,
@@ -24,10 +26,11 @@ const HandleDashboard: React.FC = () => {
     handleCheckHandle,
     handleRefreshAll,
     handleClearHistory,
+    manualRefetch,
   } = useDashboardData();
 
   const [showAddHandleDialog, setShowAddHandleDialog] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'table'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'table'>('table');
 
   const platforms = getUniquePlatforms(handles);
   
@@ -45,55 +48,61 @@ const HandleDashboard: React.FC = () => {
     return filterOptions.statuses.includes(handle.status);
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-10">
-        <RefreshCw className="h-8 w-8 animate-spin text-brand-blue" />
-        <span className="ml-3 text-gray-600">Loading handles...</span>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <HandleDashboardControls
-        searchTerm={filterOptions.searchTerm}
-        onSearch={(term) => setFilterOptions(prev => ({ ...prev, searchTerm: term }))}
-        platforms={platforms}
-        selectedPlatform={filterOptions.platform}
-        onPlatformFilter={(platform) => setFilterOptions(prev => ({ ...prev, platform }))}
-        selectedStatuses={filterOptions.statuses}
-        onStatusFilter={(statuses) => setFilterOptions(prev => ({ ...prev, statuses }))}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        onAddHandle={() => setShowAddHandleDialog(true)}
-      />
+      <Card className="bg-white">
+        <CardContent className="p-6">
+          <HandleDashboardControls
+            searchTerm={filterOptions.searchTerm}
+            onSearch={(term) => setFilterOptions(prev => ({ ...prev, searchTerm: term }))}
+            platforms={platforms}
+            selectedPlatform={filterOptions.platform}
+            onPlatformFilter={(platform) => setFilterOptions(prev => ({ ...prev, platform }))}
+            selectedStatuses={filterOptions.statuses}
+            onStatusFilter={(statuses) => setFilterOptions(prev => ({ ...prev, statuses }))}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            onAddHandle={() => setShowAddHandleDialog(true)}
+            onRefresh={manualRefetch}
+            isRefetching={isRefetching}
+          />
+        </CardContent>
+      </Card>
 
-      <HandleActionBar
-        statusCounts={statusCounts}
-        onClearAll={handleClearHistory}
-        onRefreshAll={handleRefreshAll}
-      />
+      <Card className="bg-white">
+        <CardContent className="p-6">
+          <HandleActionBar
+            statusCounts={statusCounts}
+            onClearAll={handleClearHistory}
+            onRefreshAll={handleRefreshAll}
+          />
 
-      {viewMode === 'list' ? (
-        <HandleList
-          handles={filteredHandles}
-          refreshingHandles={refreshingHandles}
-          onDelete={handleDeleteHandle}
-          onToggleNotifications={handleToggleNotifications}
-          onToggleMonitoring={handleToggleMonitoring}
-          onCheckHandle={handleCheckHandle}
-        />
-      ) : (
-        <HandleTable
-          handles={filteredHandles}
-          refreshingHandles={refreshingHandles}
-          onDelete={handleDeleteHandle}
-          onToggleNotifications={handleToggleNotifications}
-          onToggleMonitoring={handleToggleMonitoring}
-          onCheckHandle={handleCheckHandle}
-        />
-      )}
+          {isLoading ? (
+            <div className="flex justify-center items-center py-10">
+              <RefreshCw className="h-8 w-8 animate-spin text-brand-blue" />
+              <span className="ml-3 text-gray-600">Loading handles...</span>
+            </div>
+          ) : viewMode === 'list' ? (
+            <HandleList
+              handles={filteredHandles}
+              refreshingHandles={refreshingHandles}
+              onDelete={handleDeleteHandle}
+              onToggleNotifications={handleToggleNotifications}
+              onToggleMonitoring={handleToggleMonitoring}
+              onCheckHandle={handleCheckHandle}
+            />
+          ) : (
+            <HandleTable
+              handles={filteredHandles}
+              refreshingHandles={refreshingHandles}
+              onDelete={handleDeleteHandle}
+              onToggleNotifications={handleToggleNotifications}
+              onToggleMonitoring={handleToggleMonitoring}
+              onCheckHandle={handleCheckHandle}
+            />
+          )}
+        </CardContent>
+      </Card>
 
       <HandleAddDialog
         open={showAddHandleDialog}

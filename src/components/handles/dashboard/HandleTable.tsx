@@ -2,7 +2,7 @@
 import React from "react";
 import { Handle } from "../types";
 import { RefreshCw } from "lucide-react";
-import { Table, TableHeader, TableBody, TableHead, TableRow } from "@/components/ui/table";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import HandleItem from "../HandleItem";
 
 interface HandleTableProps {
@@ -37,23 +37,23 @@ const HandleTable: React.FC<HandleTableProps> = ({
 
   if (handles.length === 0) {
     return (
-      <div className="text-center py-10 border border-dashed rounded-lg">
+      <div className="text-center py-10 border border-dashed rounded-lg bg-gray-50">
         <p className="text-gray-500">No handles found. Add a handle to start monitoring.</p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-100 shadow-sm">
+    <div className="overflow-x-auto rounded-lg border border-gray-100 shadow-sm bg-white">
       <Table>
         <TableHeader className="bg-gray-50">
           <TableRow>
-            <TableHead className="text-xs uppercase tracking-wider">Handle</TableHead>
-            <TableHead className="text-xs uppercase tracking-wider">Status</TableHead>
-            <TableHead className="text-xs uppercase tracking-wider">Monitoring</TableHead>
-            <TableHead className="text-xs uppercase tracking-wider">Last Checked</TableHead>
-            <TableHead className="text-xs uppercase tracking-wider">Notifications</TableHead>
-            <TableHead className="text-xs uppercase tracking-wider">Actions</TableHead>
+            <TableHead className="text-xs font-medium uppercase tracking-wider text-gray-500">Handle</TableHead>
+            <TableHead className="text-xs font-medium uppercase tracking-wider text-gray-500">Status</TableHead>
+            <TableHead className="text-xs font-medium uppercase tracking-wider text-gray-500">Monitoring</TableHead>
+            <TableHead className="text-xs font-medium uppercase tracking-wider text-gray-500">Last Checked</TableHead>
+            <TableHead className="text-xs font-medium uppercase tracking-wider text-gray-500">Notifications</TableHead>
+            <TableHead className="text-xs font-medium uppercase tracking-wider text-gray-500">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
