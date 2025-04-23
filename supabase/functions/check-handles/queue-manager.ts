@@ -18,7 +18,7 @@ export class RequestQueue {
   private maxConcurrent: number;
   private platformLimits: Record<string, { current: number, max: number, resetTime?: number }> = {};
 
-  constructor(maxConcurrent = 3) {
+  constructor(maxConcurrent = 10) {
     this.maxConcurrent = maxConcurrent;
   }
 
@@ -139,6 +139,20 @@ export class RequestQueue {
       inProgress: this.inProgress.size,
       byPlatform
     };
+  }
+
+  // Get queue position
+  getQueuePosition(taskId: string): number {
+    const index = this.queue.findIndex(task => task.id === taskId);
+    return index === -1 ? 0 : index + 1;
+  }
+
+  // Get estimated wait time (in seconds)
+  getEstimatedWaitTime(taskId: string): number {
+    const position = this.getQueuePosition(taskId);
+    const avgTimePerTask = 3; // Average seconds per task
+    const concurrentTasks = this.maxConcurrent;
+    return Math.ceil((position / concurrentTasks) * avgTimePerTask);
   }
 }
 

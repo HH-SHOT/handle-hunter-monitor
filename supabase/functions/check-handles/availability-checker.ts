@@ -181,22 +181,22 @@ async function checkTwitchHandleWithAPI(
 export async function processBatchedHandleChecks(
   supabaseClient: ReturnType<typeof createClient>,
   handles: any[],
-  batchSize = 5
+  batchSize = 10
 ): Promise<Record<string, 'available' | 'unavailable'>> {
   const logger = getLogger(supabaseClient);
   const results: Record<string, 'available' | 'unavailable'> = {};
   
-  // Add handles to queue
+  // Add handles to queue with estimated times
   for (const handle of handles) {
     requestQueue.enqueue({
       id: handle.id,
       platform: handle.platform,
       name: handle.name,
-      priority: handle.status === 'monitoring' ? 2 : 1 // Prioritize monitoring handles
+      priority: handle.status === 'monitoring' ? 2 : 1,
     });
   }
-  
-  // Process queue in batches
+
+  // Process queue in larger batches
   while (true) {
     const tasks = requestQueue.dequeue(batchSize);
     if (tasks.length === 0) break;
@@ -205,12 +205,9 @@ export async function processBatchedHandleChecks(
       try {
         const platformConfig = PLATFORMS[task.platform];
         if (!platformConfig) {
-          logger.warn(`Unsupported platform: ${task.platform}`, {
-            handleId: task.id,
-            platform: task.platform
-          });
+          logger.warn(`Unsupported platform: ${task.platform}`);
           requestQueue.complete(task.id);
-          results[task.id] = 'unavailable'; // Default for unsupported platforms
+          results[task.id] = 'unavailable';
           return;
         }
         
@@ -221,27 +218,19 @@ export async function processBatchedHandleChecks(
           supabaseClient
         );
         
-        logger.info(`Final status for ${task.name} on ${task.platform}: ${status}`, {
-          handleId: task.id,
-          platform: task.platform,
-          name: task.name,
-          status: status
-        });
-        
         results[task.id] = status;
         requestQueue.complete(task.id);
       } catch (error) {
-        logger.error(`Error checking handle ${task.name} on ${task.platform}:`, {
-          handleId: task.id,
-          error
-        });
-        
-        // Retry logic is handled by the queue
-        requestQueue.retry(task, false);
+        logger.error(`Error checking handle ${task.name}:`, error);
+        if (task.retries < 2) {
+          requestQueue.retry(task, false);
+        } else {
+          results[task.id] = 'unavailable';
+          requestQueue.complete(task.id);
+        }
       }
     });
     
-    // Wait for all checks in this batch to complete
     await Promise.all(checkPromises);
   }
   

@@ -1,14 +1,15 @@
-
 import React from 'react';
-import { Monitor } from 'lucide-react';
+import { Monitor, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface HandleStatusProps {
   status: string;
   isMonitoring: boolean;
+  queuePosition?: number;
 }
 
-const HandleStatus: React.FC<HandleStatusProps> = ({ status, isMonitoring }) => {
+const HandleStatus: React.FC<HandleStatusProps> = ({ status, isMonitoring, queuePosition }) => {
   // Define colors based on status
   const getStatusBadgeStyles = () => {
     switch(status) {
@@ -25,6 +26,10 @@ const HandleStatus: React.FC<HandleStatusProps> = ({ status, isMonitoring }) => 
 
   // Get display text for the status
   const getStatusDisplayText = () => {
+    if (status === 'monitoring' && queuePosition) {
+      return `Pending (#${queuePosition})`;
+    }
+    
     switch(status) {
       case 'available':
         return 'Available';
@@ -38,12 +43,24 @@ const HandleStatus: React.FC<HandleStatusProps> = ({ status, isMonitoring }) => 
   };
 
   const statusBadge = (
-    <Badge 
-      variant="outline"
-      className={`${getStatusBadgeStyles()} px-2.5 py-0.5 rounded-full text-xs font-medium`}
-    >
-      {getStatusDisplayText()}
-    </Badge>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger>
+          <Badge 
+            variant="outline"
+            className={`${getStatusBadgeStyles()} px-2.5 py-0.5 rounded-full text-xs font-medium`}
+          >
+            {status === 'monitoring' && <Clock className="h-3 w-3 mr-1 inline animate-spin" />}
+            {getStatusDisplayText()}
+          </Badge>
+        </TooltipTrigger>
+        {status === 'monitoring' && (
+          <TooltipContent>
+            <p>Position in queue: {queuePosition || 'Processing'}</p>
+          </TooltipContent>
+        )}
+      </Tooltip>
+    </TooltipProvider>
   );
 
   const monitoringBadge = isMonitoring ? (
