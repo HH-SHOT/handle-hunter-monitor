@@ -4,6 +4,7 @@ import { Handle, FilterOptions } from '../types';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { convertToPlatformType, convertToStatusType } from '../handleUtils';
 
 export const useHandleData = () => {
   const { user, loading: authLoading } = useAuth();
@@ -47,8 +48,8 @@ export const useHandleData = () => {
       const formattedHandles: Handle[] = data.map(dbHandle => ({
         id: dbHandle.id,
         name: dbHandle.name,
-        platform: dbHandle.platform as 'twitter' | 'instagram' | 'twitch' | 'tiktok',
-        status: dbHandle.status as 'available' | 'unavailable' | 'monitoring',
+        platform: convertToPlatformType(dbHandle.platform),
+        status: convertToStatusType(dbHandle.status),
         lastChecked: dbHandle.last_checked ? new Date(dbHandle.last_checked).toLocaleString() : 'never',
         notifications: dbHandle.notifications_enabled || false,
         monitoringEnabled: dbHandle.monitoring_enabled || false

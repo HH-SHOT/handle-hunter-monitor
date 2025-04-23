@@ -4,8 +4,8 @@ import { Handle, DbHandle, HandleStatus } from './types';
 // Convert DB platform string to strict union type
 export const convertToPlatformType = (
   platform: string
-): 'twitter' | 'instagram' | 'twitch' | 'tiktok' => {
-  if (platform === 'twitter' || platform === 'instagram' || platform === 'twitch' || platform === 'tiktok') {
+): 'twitter' | 'twitch' => {
+  if (platform === 'twitter' || platform === 'twitch') {
     return platform;
   }
   return 'twitter'; // fallback
