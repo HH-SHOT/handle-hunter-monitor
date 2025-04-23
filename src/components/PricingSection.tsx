@@ -2,6 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SubscriptionTierProps } from './SubscriptionTier';
+import pricingData from '@/data/pricing.json';
 
 // This is a separate component just for the pricing page
 const PricingTier = ({ 
@@ -74,53 +75,18 @@ const PricingSection = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          <PricingTier 
-            name="Free"
-            price={0}
-            description="Perfect for getting started with handle monitoring"
-            features={[
-              "Monitor up to 3 handles",
-              "Daily availability checks",
-              "Email notifications",
-              "Basic dashboard access"
-            ]}
-            highlighted={false}
-            buttonText="Get Started"
-            onButtonClick={handleGetStarted}
-          />
-          
-          <PricingTier 
-            name="Standard"
-            price={9.99}
-            description="More frequent checks for serious handle hunters"
-            features={[
-              "Monitor up to 10 handles",
-              "12-hour availability checks",
-              "Email and SMS notifications",
-              "Full dashboard access",
-              "Handle history tracking"
-            ]}
-            highlighted={true}
-            buttonText="Get Started"
-            onButtonClick={handleGetStarted}
-          />
-          
-          <PricingTier 
-            name="Pro"
-            price={19.99}
-            description="Maximum monitoring for professional users"
-            features={[
-              "Unlimited handle monitoring",
-              "Hourly availability checks",
-              "Priority notifications",
-              "Advanced analytics",
-              "API access",
-              "Priority support"
-            ]}
-            highlighted={false}
-            buttonText="Get Started"
-            onButtonClick={handleGetStarted}
-          />
+          {pricingData.plans.map((plan, index) => (
+            <PricingTier 
+              key={index}
+              name={plan.name}
+              price={plan.price}
+              description={plan.description}
+              features={plan.features}
+              highlighted={plan.highlighted}
+              buttonText={plan.buttonText}
+              onButtonClick={handleGetStarted}
+            />
+          ))}
         </div>
       </div>
     </div>

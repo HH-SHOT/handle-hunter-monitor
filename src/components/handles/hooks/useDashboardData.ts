@@ -6,9 +6,12 @@ export const useDashboardData = () => {
   const {
     handles,
     isLoading,
+    isRefetching,
+    error,
     filterOptions,
     setFilterOptions,
     fetchHandles,
+    refetchHandles,
     statusCounts,
   } = useHandleData();
 
@@ -70,11 +73,17 @@ export const useDashboardData = () => {
     handleClearHistory: async () => {
       return await handleClearHistory();
     },
+    manualRefetch: async () => {
+      await refetchHandles();
+      return true;
+    }
   };
 
   return {
     handles,
     isLoading,
+    isRefetching,
+    error,
     refreshingHandles,
     filterOptions,
     setFilterOptions,

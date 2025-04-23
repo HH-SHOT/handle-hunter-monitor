@@ -1,0 +1,27 @@
+
+[
+  {
+    "question": "How does handle monitoring work?",
+    "answer": "Our system checks the availability of social media handles at regular intervals by querying the platform APIs. When a username becomes available, we immediately notify you through your chosen notification methods."
+  },
+  {
+    "question": "Can I monitor handles across multiple platforms?",
+    "answer": "Yes, HandleHunter allows you to monitor usernames across all major social media platforms, including Twitter, Instagram, Facebook, and more, all from a single dashboard."
+  },
+  {
+    "question": "How frequently are handles checked?",
+    "answer": "The checking frequency depends on your plan. Free users get daily checks, Standard users get hourly checks, and Pro users get real-time monitoring with immediate notifications."
+  },
+  {
+    "question": "What happens when a handle becomes available?",
+    "answer": "As soon as a handle becomes available, you'll receive an instant notification via your chosen methods (email, SMS, or app notification). You can then quickly claim the username on the respective platform."
+  },
+  {
+    "question": "Can I upgrade or downgrade my plan later?",
+    "answer": "Absolutely! You can upgrade or downgrade your subscription at any time. When upgrading, you'll get immediate access to the new features. When downgrading, the changes will take effect at the end of your current billing cycle."
+  },
+  {
+    "question": "Is there a limit to how many handles I can monitor?",
+    "answer": "Yes, each plan has a specific limit. Free users can monitor up to 3 handles, Standard users can monitor up to 10 handles, and Pro users can monitor up to 30 handles simultaneously."
+  }
+]

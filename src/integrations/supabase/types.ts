@@ -30,6 +30,42 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          created_at: string | null
+          date: string
+          description: string
+          id: string
+          image: string
+          location: string | null
+          title: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          description: string
+          id?: string
+          image: string
+          location?: string | null
+          title: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          description?: string
+          id?: string
+          image?: string
+          location?: string | null
+          title?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       handle_cache: {
         Row: {
           checked_at: string

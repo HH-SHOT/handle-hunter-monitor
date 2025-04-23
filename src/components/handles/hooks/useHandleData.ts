@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Handle, FilterOptions } from '../types';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,24 +9,40 @@ export const useHandleData = () => {
   const { user, loading: authLoading } = useAuth();
   const [handles, setHandles] = useState<Handle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefetching, setIsRefetching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     searchTerm: '',
     platform: 'all',
     statuses: ['available', 'unavailable', 'monitoring']
   });
 
-  const fetchHandles = async () => {
-    if (!user) return;
+  const fetchHandles = useCallback(async () => {
+    if (!user) {
+      setError('Authentication required to fetch handles');
+      setIsLoading(false);
+      return;
+    }
     
-    setIsLoading(true);
     try {
+      setError(null);
+      
       const { data, error } = await supabase
         .from('handles')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error fetching handles:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+
+      if (!data) {
+        console.warn('No data returned from handle query');
+        setHandles([]);
+        return;
+      }
 
       const formattedHandles: Handle[] = data.map(dbHandle => ({
         id: dbHandle.id,
@@ -40,22 +56,36 @@ export const useHandleData = () => {
 
       setHandles(formattedHandles);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Error fetching handles:', error);
+      setError(errorMessage);
       toast({
-        title: 'Error',
-        description: 'Failed to load your handles. Please try again.',
+        title: 'Error Loading Handles',
+        description: `Failed to load your handles: ${errorMessage}`,
         variant: 'destructive'
       });
     } finally {
       setIsLoading(false);
+      setIsRefetching(false);
     }
-  };
+  }, [user]);
 
+  // Initial load
   useEffect(() => {
     if (!authLoading && user) {
       fetchHandles();
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, fetchHandles]);
+
+  // Manual refetch function
+  const refetchHandles = useCallback(async () => {
+    setIsRefetching(true);
+    await fetchHandles();
+    toast({
+      title: 'Data Refreshed',
+      description: 'Handle data has been refreshed successfully.',
+    });
+  }, [fetchHandles]);
 
   const filteredHandles = handles.filter(handle => {
     if (filterOptions.searchTerm && 
@@ -80,9 +110,12 @@ export const useHandleData = () => {
   return {
     handles: filteredHandles,
     isLoading,
+    isRefetching,
+    error,
     filterOptions,
     setFilterOptions,
     fetchHandles,
+    refetchHandles,
     statusCounts,
   };
 };

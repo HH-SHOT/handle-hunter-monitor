@@ -1,0 +1,98 @@
+
+{
+  "plans": [
+    {
+      "name": "Free",
+      "price": 0,
+      "description": "Perfect for getting started with handle monitoring",
+      "features": [
+        "Monitor up to 3 handles",
+        "Daily availability checks",
+        "Email notifications",
+        "Basic dashboard access"
+      ],
+      "buttonText": "Get Started",
+      "highlighted": false
+    },
+    {
+      "name": "Standard",
+      "price": 5,
+      "description": "More frequent checks for serious handle hunters",
+      "features": [
+        "Monitor up to 10 handles",
+        "12-hour availability checks",
+        "Email and SMS notifications",
+        "Full dashboard access",
+        "Handle history tracking"
+      ],
+      "buttonText": "Get Started",
+      "highlighted": true
+    },
+    {
+      "name": "Pro",
+      "price": 12,
+      "description": "Maximum monitoring for professional users",
+      "features": [
+        "Unlimited handle monitoring",
+        "Hourly availability checks",
+        "Priority notifications",
+        "Advanced analytics",
+        "API access",
+        "Priority support"
+      ],
+      "buttonText": "Get Started",
+      "highlighted": false
+    }
+  ],
+  "comparisonTable": {
+    "features": [
+      {
+        "name": "Handles monitoring limit",
+        "free": "3",
+        "standard": "10",
+        "pro": "30"
+      },
+      {
+        "name": "Check frequency",
+        "free": "Daily",
+        "standard": "Hourly",
+        "pro": "Real-time"
+      },
+      {
+        "name": "Email notifications",
+        "free": true,
+        "standard": true,
+        "pro": true
+      },
+      {
+        "name": "SMS notifications",
+        "free": false,
+        "standard": true,
+        "pro": true
+      },
+      {
+        "name": "Analytics",
+        "free": "Basic",
+        "standard": "Advanced",
+        "pro": "Full Suite"
+      },
+      {
+        "name": "API Access",
+        "free": false,
+        "standard": false,
+        "pro": true
+      },
+      {
+        "name": "Priority Support",
+        "free": false,
+        "standard": true,
+        "pro": true
+      }
+    ],
+    "prices": {
+      "free": 0,
+      "standard": 5,
+      "pro": 12
+    }
+  }
+}
