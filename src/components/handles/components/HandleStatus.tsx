@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Monitor, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -11,6 +11,21 @@ interface HandleStatusProps {
 }
 
 const HandleStatus: React.FC<HandleStatusProps> = ({ status, isMonitoring, queuePosition }) => {
+  const [elapsedTime, setElapsedTime] = useState(0);
+  
+  // Start a timer when checking starts to provide feedback on long-running checks
+  useEffect(() => {
+    if (status === 'monitoring') {
+      const timer = setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+      }, 1000);
+      
+      return () => clearInterval(timer);
+    } else {
+      setElapsedTime(0);
+    }
+  }, [status]);
+
   // Define colors based on status
   const getStatusBadgeStyles = () => {
     switch(status) {
@@ -27,9 +42,9 @@ const HandleStatus: React.FC<HandleStatusProps> = ({ status, isMonitoring, queue
 
   // Get display text for the status with estimated time
   const getStatusDisplayText = () => {
-    if (status === 'monitoring' && queuePosition) {
+    if (status === 'monitoring') {
       // Only show position when it's more than 1
-      if (queuePosition > 1) {
+      if (queuePosition && queuePosition > 1) {
         return `Checking... (#${queuePosition})`;
       }
       return 'Checking...';
@@ -67,6 +82,14 @@ const HandleStatus: React.FC<HandleStatusProps> = ({ status, isMonitoring, queue
     }
   };
 
+  // Show timeout warning for long-running checks
+  const getTimeoutMessage = () => {
+    if (status === 'monitoring' && elapsedTime > 30) {
+      return "Check taking longer than expected. Please try again.";
+    }
+    return null;
+  };
+
   const statusBadge = (
     <TooltipProvider>
       <Tooltip>
@@ -77,15 +100,24 @@ const HandleStatus: React.FC<HandleStatusProps> = ({ status, isMonitoring, queue
           >
             {status === 'monitoring' && <Clock className="h-3 w-3 mr-1 inline animate-spin" />}
             {getStatusDisplayText()}
+            {status === 'monitoring' && elapsedTime > 15 && " (slow)"}
           </Badge>
         </TooltipTrigger>
         {status === 'monitoring' && (
           <TooltipContent>
             <p>
-              {queuePosition 
-                ? `Position in queue: ${queuePosition}${getEstimatedTime() ? ` (ETA: ${getEstimatedTime()})` : ''}` 
-                : 'Checking handle availability'}
+              {getTimeoutMessage() || 
+                (queuePosition 
+                  ? `Position in queue: ${queuePosition}${getEstimatedTime() ? ` (ETA: ${getEstimatedTime()})` : ''}` 
+                  : 'Checking handle availability')}
             </p>
+            {elapsedTime > 15 && (
+              <p className="text-amber-500 mt-1 text-xs">
+                {elapsedTime > 30 
+                  ? "Connection may be slow. Consider trying again." 
+                  : "Taking longer than expected."}
+              </p>
+            )}
           </TooltipContent>
         )}
       </Tooltip>
