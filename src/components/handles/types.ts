@@ -1,8 +1,7 @@
-
 export interface Handle {
   id: string;
   name: string;
-  platform: 'twitter' | 'instagram' | 'twitch' | 'tiktok';
+  platform: 'twitter' | 'twitch';
   status: HandleStatus;
   lastChecked: string;
   notifications: boolean;
@@ -14,7 +13,7 @@ export type HandleStatus = 'available' | 'unavailable' | 'monitoring';
 export interface HandleFormData {
   id?: string;
   name: string;
-  platform: 'twitter' | 'instagram' | 'twitch' | 'tiktok';
+  platform: 'twitter' | 'twitch';
 }
 
 export interface DbHandle {

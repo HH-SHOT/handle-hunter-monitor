@@ -33,9 +33,7 @@ const PlatformSelect: React.FC<PlatformSelectProps> = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="twitter">Twitter</SelectItem>
-          <SelectItem value="instagram">Instagram</SelectItem>
           <SelectItem value="twitch">Twitch</SelectItem>
-          <SelectItem value="tiktok">TikTok</SelectItem>
         </SelectContent>
       </Select>
     </div>

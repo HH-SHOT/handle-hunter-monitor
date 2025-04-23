@@ -1,8 +1,5 @@
-
 import { PlatformConfig } from './types';
 
-// Load platform config from the shared JSON file
-// Since we can't directly import JSON in edge functions, we're copying the content
 export const PLATFORMS: Record<string, PlatformConfig> = {
   twitter: {
     url: "https://twitter.com/",
@@ -41,35 +38,6 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
     },
     useProxy: true
   },
-  instagram: {
-    url: "https://www.instagram.com/",
-    notFoundText: [
-      "Sorry, this page isn't available.",
-      "The link you followed may be broken",
-      "Page not found",
-      "User not found",
-      "The page may have been removed",
-      "This username isn't available."
-    ],
-    availableIndicators: [
-      "Sorry, this page isn't available.",
-      "The link you followed may be broken",
-      "Page not found",
-      "The page may have been removed"
-    ],
-    takenIndicators: [
-      "profile picture",
-      "followers",
-      "posts",
-      "following",
-      "log in to see their photos and videos",
-      "This Account is Private"
-    ],
-    isOptimal: false,
-    checkMethod: 'scraping',
-    methodNotes: "No public API for username checks. Uses URL probing which is common practice but prone to rate-limits and blocking.",
-    useProxy: true // Explicitly setting useProxy to true for Instagram
-  },
   twitch: {
     url: "https://www.twitch.tv/",
     apiEndpoint: "https://api.twitch.tv/helix/users",
@@ -101,35 +69,6 @@ export const PLATFORMS: Record<string, PlatformConfig> = {
     isOptimal: true,
     checkMethod: 'api',
     methodNotes: "Uses official Twitch Helix API which is fast, reliable, and accurate for username checks."
-  },
-  tiktok: {
-    url: "https://www.tiktok.com/@",
-    notFoundText: [
-      "Couldn't find this account",
-      "This account is not available",
-      "User not found",
-      "Page not found",
-      "This username doesn't exist"
-    ],
-    availableIndicators: [
-      "Couldn't find this account",
-      "This account is not available",
-      "User not found",
-      "This username doesn't exist"
-    ],
-    takenIndicators: [
-      "followers",
-      "following",
-      "likes",
-      "videos",
-      "bio",
-      "profile"
-    ],
-    requiresAtSymbol: true,
-    isOptimal: false,
-    checkMethod: 'scraping',
-    methodNotes: "No official API for username checks. Uses URL probing which is reliable short-term but lacks stability at scale.",
-    useProxy: true // Explicitly setting useProxy to true for TikTok
   }
 };
 
@@ -147,4 +86,3 @@ export interface PlatformConfig {
   methodNotes: string;
   headers?: Record<string, string>;
 }
-
