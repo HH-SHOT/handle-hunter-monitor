@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
 import { PLATFORMS } from './platform-config.ts';
@@ -88,20 +89,45 @@ async function handleSingleHandleCheck(
           platform: handle.platform,
           status: handle.status,
           lastChecked: handle.last_checked,
-          cached: true
+          cached: true,
+          queuePosition: 0
         }
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
   
-  requestQueue.enqueue({
+  // Set higher priority for individual checks (5 instead of 3)
+  const queueTask = requestQueue.enqueue({
     id: handle.id,
     platform: handle.platform,
     name: handle.name,
-    priority: 3
+    priority: 5
   });
   
+  // Get initial queue position for immediate feedback
+  const queuePosition = requestQueue.getQueuePosition(handle.id);
+  
+  if (queuePosition > 1) {
+    // If in queue, return status immediately with position
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        inProgress: true, 
+        handle: {
+          id: handle.id,
+          name: handle.name,
+          platform: handle.platform,
+          status: 'monitoring',
+          lastChecked: handle.last_checked,
+          queuePosition: queuePosition
+        }
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+  
+  // Only proceed with immediate check for position 1
   const results = await processBatchedHandleChecks(supabaseClient, [handle], 1);
   const newStatus = results[handle.id];
   const lastChecked = new Date().toISOString();
@@ -116,7 +142,8 @@ async function handleSingleHandleCheck(
         name: handle.name,
         platform: handle.platform,
         status: newStatus,
-        lastChecked: lastChecked
+        lastChecked: lastChecked,
+        queuePosition: 0
       }
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -139,7 +166,8 @@ async function handleRefreshAllHandles(supabaseClient: ReturnType<typeof createC
   
   logger.info(`Found ${handles.length} handles to check`);
   
-  const results = await processBatchedHandleChecks(supabaseClient, handles, 5);
+  // Increased batch size from 5 to 10
+  const results = await processBatchedHandleChecks(supabaseClient, handles, 10);
   
   const processedResults = [];
   for (const handle of handles) {
@@ -201,7 +229,8 @@ async function handleScheduledChecks(supabaseClient: ReturnType<typeof createCli
   
   logger.info(`${handlesToCheck.length} handles are in monitoring status and will be checked`);
   
-  const results = await processBatchedHandleChecks(supabaseClient, handlesToCheck, 5);
+  // Increased batch size from 5 to 10
+  const results = await processBatchedHandleChecks(supabaseClient, handlesToCheck, 10);
   
   const processedResults = [];
   const availableHandles = [];

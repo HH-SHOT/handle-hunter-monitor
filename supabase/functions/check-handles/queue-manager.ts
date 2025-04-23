@@ -1,3 +1,4 @@
+
 // A simple priority queue implementation for managing API requests
 // This helps us respect rate limits and implement exponential backoff
 
@@ -27,7 +28,7 @@ export class RequestQueue {
     const fullTask: QueueTask = {
       ...task,
       retries: 0,
-      maxRetries: task.maxRetries || 3,
+      maxRetries: task.maxRetries || 2, // Reduced from 3 to 2 for faster processing
     };
     
     // Check if task is already in queue
@@ -106,10 +107,10 @@ export class RequestQueue {
       return;
     }
     
-    // Implement exponential backoff
+    // Implement exponential backoff - but with shorter delays
     task.retries++;
     task.lastAttempt = Date.now();
-    task.delay = Math.min(1000 * Math.pow(2, task.retries - 1), 60000); // Max 1 minute delay
+    task.delay = Math.min(500 * Math.pow(2, task.retries - 1), 30000); // Max 30 second delay (reduced from 60s)
     
     console.log(`Retrying task ${task.platform}/${task.name} (attempt ${task.retries}/${task.maxRetries}) after ${task.delay}ms`);
     this.queue.push(task);
@@ -150,7 +151,7 @@ export class RequestQueue {
   // Get estimated wait time (in seconds)
   getEstimatedWaitTime(taskId: string): number {
     const position = this.getQueuePosition(taskId);
-    const avgTimePerTask = 3; // Average seconds per task
+    const avgTimePerTask = 2; // Average seconds per task (optimized from 3)
     const concurrentTasks = this.maxConcurrent;
     return Math.ceil((position / concurrentTasks) * avgTimePerTask);
   }
@@ -173,5 +174,6 @@ export const defaultCacheConfig: CacheConfig = {
   }
 };
 
-// Create a singleton instance
-export const requestQueue = new RequestQueue(5);
+// Create a singleton instance - increased from 5 to 10 concurrent
+export const requestQueue = new RequestQueue(10);
+

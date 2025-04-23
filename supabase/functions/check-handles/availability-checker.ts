@@ -1,3 +1,4 @@
+
 import { PlatformConfig } from './platform-config.ts';
 import { sendProxiedRequest } from './http-client.ts';
 import { analyzeContent } from './content-analyzer.ts';
@@ -25,12 +26,17 @@ async function checkPlatformAvailability(
   const logger = getLogger(supabaseClient);
   
   try {
-    // Handle API-based checks for specific platforms
+    // Fast-path for API-based checks (Twitch)
     if (platform === 'twitch' && platformConfig.useApi) {
       return await checkTwitchHandleWithAPI(handle, supabaseClient);
     }
 
-    // For all other platforms or if API check fails, use content analysis
+    // Fast-path for proxy-based checks (Instagram, TikTok)
+    if ((platform === 'instagram' || platform === 'tiktok') && platformConfig.useProxy) {
+      return await checkWithProxy(handle, platform, platformConfig, supabaseClient);
+    }
+
+    // For all other platforms or if specific checks fail, use content analysis
     const formattedHandle = platformConfig.requiresAtSymbol ? 
       (handle.startsWith('@') ? handle : `@${handle}`) : 
       handle;
@@ -73,6 +79,54 @@ async function checkPlatformAvailability(
       error
     });
     throw error;
+  }
+}
+
+// Optimized proxy check specifically for Instagram and TikTok
+async function checkWithProxy(
+  handle: string,
+  platform: string,
+  platformConfig: PlatformConfig,
+  supabaseClient: ReturnType<typeof createClient>
+): Promise<boolean> {
+  const logger = getLogger(supabaseClient);
+  const formattedHandle = platformConfig.requiresAtSymbol ? 
+    (handle.startsWith('@') ? handle : `@${handle}`) : 
+    handle;
+  
+  const url = platformConfig.url + formattedHandle;
+  
+  try {
+    // Use faster timeout for proxy
+    const response = await sendProxiedRequest(url, 'GET');
+    
+    // For these platforms, a 404 usually means available
+    if (response.status === 404) {
+      return true;
+    }
+    
+    // If we got a 200, quickly check for taken indicators
+    if (response.status === 200) {
+      const html = await response.text();
+      
+      // Check for taken indicators (faster than checking all criteria)
+      const isTaken = platformConfig.takenIndicators.some(
+        indicator => html.toLowerCase().includes(indicator.toLowerCase())
+      );
+      
+      return !isTaken;
+    }
+    
+    // Default to unavailable for any other status
+    return false;
+  } catch (error) {
+    logger.error(`Error in proxy check for ${handle} on ${platform}:`, {
+      platform,
+      handleName: handle,
+      error
+    });
+    // Fall back to standard check in case of error
+    return false;
   }
 }
 
@@ -177,11 +231,11 @@ async function checkTwitchHandleWithAPI(
   }
 }
 
-// Process handle checks in batch
+// Process handle checks in batch - increasing batch size for faster processing
 export async function processBatchedHandleChecks(
   supabaseClient: ReturnType<typeof createClient>,
   handles: any[],
-  batchSize = 10
+  batchSize = 20
 ): Promise<Record<string, 'available' | 'unavailable'>> {
   const logger = getLogger(supabaseClient);
   const results: Record<string, 'available' | 'unavailable'> = {};

@@ -25,10 +25,14 @@ const HandleStatus: React.FC<HandleStatusProps> = ({ status, isMonitoring, queue
     }
   };
 
-  // Get display text for the status
+  // Get display text for the status with estimated time
   const getStatusDisplayText = () => {
     if (status === 'monitoring' && queuePosition) {
-      return `Pending (#${queuePosition})`;
+      // Only show position when it's more than 1
+      if (queuePosition > 1) {
+        return `Checking... (#${queuePosition})`;
+      }
+      return 'Checking...';
     }
     
     switch(status) {
@@ -40,6 +44,26 @@ const HandleStatus: React.FC<HandleStatusProps> = ({ status, isMonitoring, queue
         return 'Checking...';
       default:
         return 'Unknown';
+    }
+  };
+
+  // Calculate estimated time remaining
+  const getEstimatedTime = () => {
+    if (!queuePosition || queuePosition <= 1) return null;
+    
+    const concurrentChecks = 10; // This should match the server setting
+    const avgTimePerTask = 1; // Average seconds per task for API-based checks
+    
+    // Calculate batch position (which batch this will be in)
+    const batchPosition = Math.ceil(queuePosition / concurrentChecks);
+    const estimatedSeconds = batchPosition * avgTimePerTask;
+    
+    if (estimatedSeconds < 5) {
+      return 'a few seconds';
+    } else if (estimatedSeconds < 60) {
+      return `~${estimatedSeconds} seconds`;
+    } else {
+      return `~${Math.ceil(estimatedSeconds / 60)} minutes`;
     }
   };
 
@@ -59,7 +83,7 @@ const HandleStatus: React.FC<HandleStatusProps> = ({ status, isMonitoring, queue
           <TooltipContent>
             <p>
               {queuePosition 
-                ? `Position in queue: ${queuePosition}` 
+                ? `Position in queue: ${queuePosition}${getEstimatedTime() ? ` (ETA: ${getEstimatedTime()})` : ''}` 
                 : 'Checking handle availability'}
             </p>
           </TooltipContent>

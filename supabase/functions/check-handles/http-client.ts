@@ -1,3 +1,4 @@
+
 import { getRandomUserAgent, generateSessionId, createProxyUrl } from './proxy-config.ts';
 
 // Function to send a request through the Bright Data proxy
@@ -20,7 +21,7 @@ export async function sendProxiedRequest(url: string, method: 'HEAD' | 'GET' = '
   };
   
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 5000); // Reduced timeout from 10s to 5s
   
   try {
     const response = await fetch(url, {
@@ -51,7 +52,10 @@ export async function sendProxiedRequest(url: string, method: 'HEAD' | 'GET' = '
     // Check for common anti-bot or CAPTCHA indicators
     const contentType = response.headers.get('content-type') || '';
     if (response.status === 200 && contentType.includes('text/html')) {
-      if ((await response.clone().text()).toLowerCase().includes('captcha')) {
+      // For performance, we'll only check for CAPTCHA in the first 500 chars
+      const text = await response.clone().text();
+      const sample = text.toLowerCase().substring(0, 500);
+      if (sample.includes('captcha')) {
         console.warn(`⚠️ CAPTCHA detected on ${url} - our request was flagged`);
       }
     }
@@ -60,8 +64,8 @@ export async function sendProxiedRequest(url: string, method: 'HEAD' | 'GET' = '
   } catch (error) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
-      console.error(`Request to ${url} timed out after 10 seconds`);
-      throw new Error(`Request timed out after 10 seconds`);
+      console.error(`Request to ${url} timed out after 5 seconds`);
+      throw new Error(`Request timed out after 5 seconds`);
     }
     console.error(`Error details:`, error);
     throw error;
@@ -74,7 +78,7 @@ export function isSuccessStatusCode(statusCode: number): boolean {
 }
 
 // Function to get HTML content with retries
-export async function getHtmlWithRetries(url: string, maxRetries = 2): Promise<{html: string, status: number}> {
+export async function getHtmlWithRetries(url: string, maxRetries = 1): Promise<{html: string, status: number}> {
   let retries = 0;
   
   while (retries <= maxRetries) {
@@ -95,8 +99,8 @@ export async function getHtmlWithRetries(url: string, maxRetries = 2): Promise<{
       }
       
       console.log(`Request failed, retrying (${retries}/${maxRetries})...`);
-      // Exponential backoff: 1s, 2s, 4s, etc.
-      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
+      // Faster backoff: 500ms, 1s
+      await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, retries - 1)));
     }
   }
   
@@ -104,7 +108,7 @@ export async function getHtmlWithRetries(url: string, maxRetries = 2): Promise<{
 }
 
 // New function for Twitter API calls with proper error handling and retries
-export async function callTwitterApi(endpoint: string, maxRetries = 2): Promise<Response> {
+export async function callTwitterApi(endpoint: string, maxRetries = 1): Promise<Response> {
   const bearerToken = Deno.env.get("TWITTER_BEARER_TOKEN");
   if (!bearerToken) {
     throw new Error("TWITTER_BEARER_TOKEN environment variable is not set");
@@ -128,15 +132,15 @@ export async function callTwitterApi(endpoint: string, maxRetries = 2): Promise<
       // If we're rate limited, wait and retry
       if (response.status === 429) {
         const resetTime = response.headers.get('x-rate-limit-reset');
-        const waitTime = resetTime ? (parseInt(resetTime) * 1000) - Date.now() : 60000;
+        const waitTime = resetTime ? (parseInt(resetTime) * 1000) - Date.now() : 30000; // Reduced from 60s to 30s
         console.log(`Rate limited. Waiting ${Math.floor(waitTime/1000)} seconds before retrying...`);
         retries++;
         if (retries > maxRetries) {
           console.error(`All ${maxRetries + 1} attempts to call Twitter API failed due to rate limiting`);
           return response; // Return the rate limited response
         }
-        // Wait until rate limit resets (or at least 60 seconds)
-        await new Promise(resolve => setTimeout(resolve, Math.max(waitTime, 60000)));
+        // Wait until rate limit resets (or at least 30 seconds)
+        await new Promise(resolve => setTimeout(resolve, Math.max(waitTime, 30000)));
         continue;
       }
       
@@ -149,10 +153,11 @@ export async function callTwitterApi(endpoint: string, maxRetries = 2): Promise<
       }
       
       console.log(`Request failed, retrying (${retries}/${maxRetries})...`);
-      // Exponential backoff: 1s, 2s, 4s, etc.
-      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
+      // Faster backoff: 500ms, 1s
+      await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, retries - 1)));
     }
   }
   
   throw new Error(`Failed to call Twitter API after ${maxRetries + 1} attempts`);
 }
+
