@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Monitor, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +37,7 @@ const HandleStatus: React.FC<HandleStatusProps> = ({ status, isMonitoring, queue
       case 'unavailable':
         return 'Taken';
       case 'monitoring':
-        return 'Pending';
+        return 'Checking...';
       default:
         return 'Unknown';
     }
@@ -56,7 +57,11 @@ const HandleStatus: React.FC<HandleStatusProps> = ({ status, isMonitoring, queue
         </TooltipTrigger>
         {status === 'monitoring' && (
           <TooltipContent>
-            <p>Position in queue: {queuePosition || 'Processing'}</p>
+            <p>
+              {queuePosition 
+                ? `Position in queue: ${queuePosition}` 
+                : 'Checking handle availability'}
+            </p>
           </TooltipContent>
         )}
       </Tooltip>
