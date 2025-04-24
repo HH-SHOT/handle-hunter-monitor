@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -32,21 +33,27 @@ export const useApiTest = () => {
 
   const checkEdgeFunctionStatus = async () => {
     try {
-      // Use the Supabase client directly to check API availability
-      const { error } = await supabase.functions.invoke('test-api', {
+      // Try a direct fetch to the edge function with ping parameter
+      // This should work without authentication now that we've set verify_jwt = false
+      const response = await fetch('https://mausvzbzorurkcoruhev.supabase.co/functions/v1/test-api', {
         method: 'POST',
-        body: { ping: true }
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabase.supabaseKey // Include the anon key for good measure
+        },
+        body: JSON.stringify({ ping: true })
       });
       
-      if (error) {
-        console.error('Error checking Edge Function with supabase client:', error);
+      if (!response.ok) {
+        console.error('Error checking Edge Function status:', response.status, response.statusText);
         setNetworkStatus({
           successful: false,
-          message: `Could not reach API: ${error.message}`
+          message: `Could not reach API: ${response.status} ${response.statusText}`
         });
         return false;
       }
       
+      // If we get here, the server is responsive
       setNetworkStatus({
         successful: true,
         message: 'API server is reachable'
@@ -64,9 +71,6 @@ export const useApiTest = () => {
 
   const testApi = async (platform: 'twitter' | 'twitch', handle: string) => {
     const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session?.user) {
-      return { error: 'Authentication required' };
-    }
     
     clearTestError();
     
@@ -76,23 +80,24 @@ export const useApiTest = () => {
         throw new Error('Cannot reach the API server. Please try again later.');
       }
       
-      const accessToken = sessionData.session?.access_token;
-      
-      if (!accessToken) {
-        throw new Error('No access token available');
-      }
-      
       console.log(`Testing ${platform} API for handle:`, handle);
       
-      const { data, error } = await supabase.functions.invoke('test-api', {
+      // Use direct fetch instead of supabase client for testing
+      const response = await fetch('https://mausvzbzorurkcoruhev.supabase.co/functions/v1/test-api', {
         method: 'POST',
-        body: { platform, handle }
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabase.supabaseKey
+        },
+        body: JSON.stringify({ platform, handle })
       });
       
-      if (error) {
-        throw new Error(`API request failed: ${error.message}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API request failed with status ${response.status}: ${errorText}`);
       }
       
+      const data = await response.json();
       console.log(`${platform} API test result:`, data);
       
       if (!data.success) {

@@ -9,4 +9,4 @@ verify_jwt = true
 [functions.upgrade-plan]
 verify_jwt = true
 [functions.test-api]
-verify_jwt = true
+verify_jwt = false
