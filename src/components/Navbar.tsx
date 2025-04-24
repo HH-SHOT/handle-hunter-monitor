@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -36,7 +37,10 @@ const Navbar = () => {
           <Link to="/pricing" className="text-gray-700 hover:text-brand-blue transition-colors">Pricing</Link>
           <Link to="/contact" className="text-gray-700 hover:text-brand-blue transition-colors">Contact</Link>
           {user && (
-            <Link to="/dashboard" className="text-gray-700 hover:text-brand-blue transition-colors">Dashboard</Link>
+            <>
+              <Link to="/dashboard" className="text-gray-700 hover:text-brand-blue transition-colors">Dashboard</Link>
+              <Link to="/api-test" className="text-gray-700 hover:text-brand-blue transition-colors">API Test</Link>
+            </>
           )}
         </div>
 
@@ -88,7 +92,10 @@ const Navbar = () => {
             <Link to="/pricing" className="text-gray-700 hover:text-brand-blue transition-colors py-2">Pricing</Link>
             <Link to="/contact" className="text-gray-700 hover:text-brand-blue transition-colors py-2">Contact</Link>
             {user && (
-              <Link to="/dashboard" className="text-gray-700 hover:text-brand-blue transition-colors py-2">Dashboard</Link>
+              <>
+                <Link to="/dashboard" className="text-gray-700 hover:text-brand-blue transition-colors py-2">Dashboard</Link>
+                <Link to="/api-test" className="text-gray-700 hover:text-brand-blue transition-colors py-2">API Test</Link>
+              </>
             )}
             <div className="flex flex-col space-y-2 pt-2 border-t">
               {user ? (
