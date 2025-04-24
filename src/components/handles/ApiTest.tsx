@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle, XCircle, RefreshCw, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -21,6 +21,11 @@ const ApiTest: React.FC = () => {
   const [isTestingTwitter, setIsTestingTwitter] = useState(false);
   const [isTestingTwitch, setIsTestingTwitch] = useState(false);
   const [showResponseData, setShowResponseData] = useState(false);
+  const [testError, setTestError] = useState<string | null>(null);
+
+  const clearTestError = () => {
+    setTestError(null);
+  };
 
   const testTwitterApi = async () => {
     if (!user) {
@@ -30,6 +35,7 @@ const ApiTest: React.FC = () => {
     
     setIsTestingTwitter(true);
     setTwitterResult(null);
+    clearTestError();
     
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -54,7 +60,9 @@ const ApiTest: React.FC = () => {
       });
       
       if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`API request failed with status ${response.status}: ${errorText}`);
       }
       
       const result = await response.json();
@@ -62,12 +70,14 @@ const ApiTest: React.FC = () => {
       setTwitterResult(result);
     } catch (error) {
       console.error('Error testing Twitter API:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setTestError(`Failed to test Twitter API: ${errorMessage}`);
       toast({
         title: "API Test Failed",
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        description: errorMessage,
         variant: "destructive"
       });
-      setTwitterResult({ error: error instanceof Error ? error.message : 'Unknown error' });
+      setTwitterResult({ error: errorMessage });
     } finally {
       setIsTestingTwitter(false);
     }
@@ -81,6 +91,7 @@ const ApiTest: React.FC = () => {
     
     setIsTestingTwitch(true);
     setTwitchResult(null);
+    clearTestError();
     
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -105,7 +116,9 @@ const ApiTest: React.FC = () => {
       });
       
       if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`API request failed with status ${response.status}: ${errorText}`);
       }
       
       const result = await response.json();
@@ -113,12 +126,14 @@ const ApiTest: React.FC = () => {
       setTwitchResult(result);
     } catch (error) {
       console.error('Error testing Twitch API:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setTestError(`Failed to test Twitch API: ${errorMessage}`);
       toast({
         title: "API Test Failed",
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        description: errorMessage,
         variant: "destructive"
       });
-      setTwitchResult({ error: error instanceof Error ? error.message : 'Unknown error' });
+      setTwitchResult({ error: errorMessage });
     } finally {
       setIsTestingTwitch(false);
     }
@@ -127,6 +142,26 @@ const ApiTest: React.FC = () => {
   return (
     <div className="container max-w-4xl py-6">
       <h2 className="text-2xl font-bold mb-6">API Test Tool</h2>
+      
+      {testError && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            {testError}
+            <div className="mt-2 text-xs">
+              <p>Possible causes:</p>
+              <ul className="list-disc pl-5 mt-1">
+                <li>Network connection issues</li>
+                <li>Edge function not deployed or has errors</li>
+                <li>API credentials not configured in Supabase</li>
+                <li>Authentication token issues</li>
+              </ul>
+            </div>
+          </AlertDescription>
+        </Alert>  
+      )}
+      
       <Tabs defaultValue="twitter">
         <TabsList className="mb-4">
           <TabsTrigger value="twitter">Twitter API</TabsTrigger>

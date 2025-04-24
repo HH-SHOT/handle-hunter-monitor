@@ -5,6 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 function initSupabaseClient() {
@@ -169,18 +170,42 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = initSupabaseClient();
+    // Add CORS headers to all responses
+    const responseHeaders = { 
+      ...corsHeaders, 
+      "Content-Type": "application/json" 
+    };
     
-    const data = await req.json();
+    // Log the request for debugging
+    console.log(`Received ${req.method} request to test-api function`);
+    console.log("Request headers:", Object.fromEntries(req.headers.entries()));
+    
+    // Validate request method
+    if (req.method !== 'POST') {
+      return new Response(
+        JSON.stringify({ error: "Method not allowed" }),
+        { headers: responseHeaders, status: 405 }
+      );
+    }
+    
+    let data;
+    try {
+      data = await req.json();
+      console.log("Request body:", JSON.stringify(data));
+    } catch (error) {
+      console.error("Error parsing request body:", error);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { headers: responseHeaders, status: 400 }
+      );
+    }
+    
     const { platform, handle } = data;
     
     if (!platform || !handle) {
       return new Response(
         JSON.stringify({ error: "Missing required parameters" }),
-        { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" }, 
-          status: 400 
-        }
+        { headers: responseHeaders, status: 400 }
       );
     }
     
@@ -193,24 +218,25 @@ serve(async (req) => {
     } else {
       return new Response(
         JSON.stringify({ error: "Unsupported platform" }),
-        { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" }, 
-          status: 400 
-        }
+        { headers: responseHeaders, status: 400 }
       );
     }
     
+    console.log("Sending response:", JSON.stringify(result));
+    
     return new Response(
       JSON.stringify(result),
-      { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
+      { headers: responseHeaders }
     );
   } catch (error) {
     console.error("Error processing request:", error);
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        stack: error.stack,
+        name: error.name
+      }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" }, 
         status: 500 
