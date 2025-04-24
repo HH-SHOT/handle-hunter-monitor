@@ -200,6 +200,14 @@ serve(async (req) => {
       );
     }
     
+    // Simple ping check for availability testing
+    if (data.ping === true) {
+      return new Response(
+        JSON.stringify({ success: true, message: "API server is online" }),
+        { headers: responseHeaders }
+      );
+    }
+    
     const { platform, handle } = data;
     
     if (!platform || !handle) {

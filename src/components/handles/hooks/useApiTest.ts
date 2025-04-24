@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -33,35 +32,31 @@ export const useApiTest = () => {
 
   const checkEdgeFunctionStatus = async () => {
     try {
-      // Use the anon key from client.ts for authentication
-      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hdXN2emJ6b3J1cmtjb3J1aGV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQxNDg4MDUsImV4cCI6MjA1OTcyNDgwNX0.6TbKdLzu-elFLxNGqqH8kDL9GCzfc6_ZLMTiqyeoj3A";
-      
-      const response = await fetch('https://mausvzbzorurkcoruhev.supabase.co/.well-known/health', {
-        method: 'GET',
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json'
-        }
+      // Use the Supabase client directly to check API availability
+      const { error } = await supabase.functions.invoke('test-api', {
+        method: 'POST',
+        body: { ping: true }
       });
       
-      if (response.ok) {
-        setNetworkStatus({
-          successful: true,
-          message: 'API server is reachable'
-        });
-        return true;
-      } else {
+      if (error) {
+        console.error('Error checking Edge Function with supabase client:', error);
         setNetworkStatus({
           successful: false,
-          message: `API server returned status code ${response.status}`
+          message: `Could not reach API: ${error.message}`
         });
         return false;
       }
+      
+      setNetworkStatus({
+        successful: true,
+        message: 'API server is reachable'
+      });
+      return true;
     } catch (error) {
       console.error('Error checking Edge Function status:', error);
       setNetworkStatus({
         successful: false,
-        message: 'API server is unreachable'
+        message: 'API server is unreachable. Please check your connection or try again later.'
       });
       return false;
     }
@@ -89,37 +84,31 @@ export const useApiTest = () => {
       
       console.log(`Testing ${platform} API for handle:`, handle);
       
-      const response = await fetch(`https://mausvzbzorurkcoruhev.supabase.co/functions/v1/test-api`, {
+      const { data, error } = await supabase.functions.invoke('test-api', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({ platform, handle })
+        body: { platform, handle }
       });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+      if (error) {
+        throw new Error(`API request failed: ${error.message}`);
       }
       
-      const result = await response.json();
-      console.log(`${platform} API test result:`, result);
+      console.log(`${platform} API test result:`, data);
       
-      if (!result.success) {
+      if (!data.success) {
         toast({
           title: `${platform} API Check`,
-          description: result.error || "Failed to check handle availability",
+          description: data.error || "Failed to check handle availability",
           variant: "destructive"
         });
       } else {
         toast({
           title: `${platform} API Check`,
-          description: result.message || "Successfully checked handle availability",
+          description: data.message || "Successfully checked handle availability",
         });
       }
       
-      return result;
+      return data;
     } catch (error) {
       console.error(`Error testing ${platform} API:`, error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
