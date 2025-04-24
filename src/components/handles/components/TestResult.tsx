@@ -1,5 +1,6 @@
 
-import { Alert, AlertDescription, AlertTitle, CheckCircle, XCircle } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ApiTestResult } from '../hooks/useApiTest';

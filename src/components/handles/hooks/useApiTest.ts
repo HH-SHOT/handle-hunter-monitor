@@ -61,8 +61,8 @@ export const useApiTest = () => {
   };
 
   const testApi = async (platform: 'twitter' | 'twitch', handle: string) => {
-    const { user } = await supabase.auth.getSession();
-    if (!user.data.session?.user) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session?.user) {
       return { error: 'Authentication required' };
     }
     
@@ -74,7 +74,6 @@ export const useApiTest = () => {
         throw new Error('Cannot reach the API server. Please try again later.');
       }
       
-      const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData.session?.access_token;
       
       if (!accessToken) {
