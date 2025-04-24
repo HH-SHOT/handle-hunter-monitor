@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle, XCircle, RefreshCw, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, RefreshCw, AlertCircle, Server, Globe } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -22,10 +22,49 @@ const ApiTest: React.FC = () => {
   const [isTestingTwitch, setIsTestingTwitch] = useState(false);
   const [showResponseData, setShowResponseData] = useState(false);
   const [testError, setTestError] = useState<string | null>(null);
+  const [networkStatus, setNetworkStatus] = useState({
+    successful: true,
+    message: 'API server is reachable'
+  });
 
   const clearTestError = () => {
     setTestError(null);
   };
+
+  // Function to check if the Supabase Edge Function is up and running
+  const checkEdgeFunctionStatus = async () => {
+    try {
+      const response = await fetch('https://mausvzbzorurkcoruhev.supabase.co/.well-known/health', {
+        method: 'GET',
+      });
+      
+      if (response.ok) {
+        setNetworkStatus({
+          successful: true,
+          message: 'API server is reachable'
+        });
+        return true;
+      } else {
+        setNetworkStatus({
+          successful: false,
+          message: `API server returned status code ${response.status}`
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error('Error checking Edge Function status:', error);
+      setNetworkStatus({
+        successful: false,
+        message: 'API server is unreachable'
+      });
+      return false;
+    }
+  };
+
+  // Check status on component mount
+  React.useEffect(() => {
+    checkEdgeFunctionStatus();
+  }, []);
 
   const testTwitterApi = async () => {
     if (!user) {
@@ -38,6 +77,12 @@ const ApiTest: React.FC = () => {
     clearTestError();
     
     try {
+      // First check if we can reach the edge function
+      const isServerUp = await checkEdgeFunctionStatus();
+      if (!isServerUp) {
+        throw new Error('Cannot reach the API server. Please try again later.');
+      }
+      
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData.session?.access_token;
       
@@ -68,6 +113,19 @@ const ApiTest: React.FC = () => {
       const result = await response.json();
       console.log('Twitter API test result:', result);
       setTwitterResult(result);
+      
+      if (!result.success) {
+        toast({
+          title: "Twitter API Check",
+          description: result.error || "Failed to check handle availability",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Twitter API Check",
+          description: result.message || "Successfully checked handle availability",
+        });
+      }
     } catch (error) {
       console.error('Error testing Twitter API:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -94,6 +152,12 @@ const ApiTest: React.FC = () => {
     clearTestError();
     
     try {
+      // First check if we can reach the edge function
+      const isServerUp = await checkEdgeFunctionStatus();
+      if (!isServerUp) {
+        throw new Error('Cannot reach the API server. Please try again later.');
+      }
+      
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData.session?.access_token;
       
@@ -107,7 +171,8 @@ const ApiTest: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
+          'Authorization': `Bearer ${accessToken}`,
+          'Cache-Control': 'no-cache'
         },
         body: JSON.stringify({ 
           platform: 'twitch',
@@ -124,6 +189,19 @@ const ApiTest: React.FC = () => {
       const result = await response.json();
       console.log('Twitch API test result:', result);
       setTwitchResult(result);
+      
+      if (!result.success) {
+        toast({
+          title: "Twitch API Check",
+          description: result.error || "Failed to check handle availability",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Twitch API Check",
+          description: result.message || "Successfully checked handle availability",
+        });
+      }
     } catch (error) {
       console.error('Error testing Twitch API:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -142,6 +220,21 @@ const ApiTest: React.FC = () => {
   return (
     <div className="container max-w-4xl py-6">
       <h2 className="text-2xl font-bold mb-6">API Test Tool</h2>
+      
+      <Alert variant={networkStatus.successful ? "default" : "destructive"} className="mb-6">
+        {networkStatus.successful ? <Server className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
+        <AlertTitle>{networkStatus.successful ? "System Status" : "Connection Issue"}</AlertTitle>
+        <AlertDescription>
+          {networkStatus.message}
+          {!networkStatus.successful && (
+            <div className="mt-2">
+              <Button size="sm" variant="outline" onClick={checkEdgeFunctionStatus}>
+                Check Again
+              </Button>
+            </div>
+          )}
+        </AlertDescription>
+      </Alert>
       
       {testError && (
         <Alert variant="destructive" className="mb-6">
@@ -188,7 +281,7 @@ const ApiTest: React.FC = () => {
                       placeholder="Enter Twitter handle"
                       disabled={isTestingTwitter}
                     />
-                    <Button onClick={testTwitterApi} disabled={isTestingTwitter}>
+                    <Button onClick={testTwitterApi} disabled={isTestingTwitter || !networkStatus.successful}>
                       {isTestingTwitter ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : null}
                       Test API
                     </Button>
@@ -260,7 +353,7 @@ const ApiTest: React.FC = () => {
                       placeholder="Enter Twitch handle"
                       disabled={isTestingTwitch}
                     />
-                    <Button onClick={testTwitchApi} disabled={isTestingTwitch}>
+                    <Button onClick={testTwitchApi} disabled={isTestingTwitch || !networkStatus.successful}>
                       {isTestingTwitch ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : null}
                       Test API
                     </Button>
