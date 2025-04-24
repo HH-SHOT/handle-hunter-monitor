@@ -33,8 +33,15 @@ export const useApiTest = () => {
 
   const checkEdgeFunctionStatus = async () => {
     try {
+      // Use the anon key from client.ts for authentication
+      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hdXN2emJ6b3J1cmtjb3J1aGV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQxNDg4MDUsImV4cCI6MjA1OTcyNDgwNX0.6TbKdLzu-elFLxNGqqH8kDL9GCzfc6_ZLMTiqyeoj3A";
+      
       const response = await fetch('https://mausvzbzorurkcoruhev.supabase.co/.well-known/health', {
         method: 'GET',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json'
+        }
       });
       
       if (response.ok) {
