@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 const ApiTest: React.FC = () => {
   const { user } = useAuth();
@@ -52,11 +53,20 @@ const ApiTest: React.FC = () => {
         })
       });
       
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+      
       const result = await response.json();
       console.log('Twitter API test result:', result);
       setTwitterResult(result);
     } catch (error) {
       console.error('Error testing Twitter API:', error);
+      toast({
+        title: "API Test Failed",
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: "destructive"
+      });
       setTwitterResult({ error: error instanceof Error ? error.message : 'Unknown error' });
     } finally {
       setIsTestingTwitter(false);
@@ -94,11 +104,20 @@ const ApiTest: React.FC = () => {
         })
       });
       
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+      
       const result = await response.json();
       console.log('Twitch API test result:', result);
       setTwitchResult(result);
     } catch (error) {
       console.error('Error testing Twitch API:', error);
+      toast({
+        title: "API Test Failed",
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: "destructive"
+      });
       setTwitchResult({ error: error instanceof Error ? error.message : 'Unknown error' });
     } finally {
       setIsTestingTwitch(false);
