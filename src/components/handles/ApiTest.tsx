@@ -1,259 +1,46 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+import React, { useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle, XCircle, RefreshCw, AlertCircle, Server, Globe } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { useApiTest } from './hooks/useApiTest';
+import { NetworkStatus } from './components/NetworkStatus';
+import { ErrorDisplay } from './components/ErrorDisplay';
+import { PlatformTest } from './components/PlatformTest';
 
 const ApiTest: React.FC = () => {
-  const { user } = useAuth();
-  const [twitterHandle, setTwitterHandle] = useState('lovabledev');
-  const [twitchHandle, setTwitchHandle] = useState('ninja');
-  const [twitterResult, setTwitterResult] = useState<any>(null);
-  const [twitchResult, setTwitchResult] = useState<any>(null);
-  const [isTestingTwitter, setIsTestingTwitter] = useState(false);
-  const [isTestingTwitch, setIsTestingTwitch] = useState(false);
-  const [showResponseData, setShowResponseData] = useState(false);
-  const [testError, setTestError] = useState<string | null>(null);
-  const [networkStatus, setNetworkStatus] = useState({
-    successful: true,
-    message: 'API server is reachable'
-  });
+  const {
+    twitterHandle,
+    setTwitterHandle,
+    twitchHandle,
+    setTwitchHandle,
+    twitterResult,
+    twitchResult,
+    isTestingTwitter,
+    isTestingTwitch,
+    showResponseData,
+    setShowResponseData,
+    testError,
+    networkStatus,
+    checkEdgeFunctionStatus,
+    testTwitterApi,
+    testTwitchApi
+  } = useApiTest();
 
-  const clearTestError = () => {
-    setTestError(null);
-  };
-
-  // Function to check if the Supabase Edge Function is up and running
-  const checkEdgeFunctionStatus = async () => {
-    try {
-      const response = await fetch('https://mausvzbzorurkcoruhev.supabase.co/.well-known/health', {
-        method: 'GET',
-      });
-      
-      if (response.ok) {
-        setNetworkStatus({
-          successful: true,
-          message: 'API server is reachable'
-        });
-        return true;
-      } else {
-        setNetworkStatus({
-          successful: false,
-          message: `API server returned status code ${response.status}`
-        });
-        return false;
-      }
-    } catch (error) {
-      console.error('Error checking Edge Function status:', error);
-      setNetworkStatus({
-        successful: false,
-        message: 'API server is unreachable'
-      });
-      return false;
-    }
-  };
-
-  // Check status on component mount
-  React.useEffect(() => {
+  useEffect(() => {
     checkEdgeFunctionStatus();
   }, []);
-
-  const testTwitterApi = async () => {
-    if (!user) {
-      setTwitterResult({ error: 'Authentication required' });
-      return;
-    }
-    
-    setIsTestingTwitter(true);
-    setTwitterResult(null);
-    clearTestError();
-    
-    try {
-      // First check if we can reach the edge function
-      const isServerUp = await checkEdgeFunctionStatus();
-      if (!isServerUp) {
-        throw new Error('Cannot reach the API server. Please try again later.');
-      }
-      
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-      
-      if (!accessToken) {
-        throw new Error('No access token available');
-      }
-      
-      console.log('Testing Twitter API for handle:', twitterHandle);
-      
-      const response = await fetch(`https://mausvzbzorurkcoruhev.supabase.co/functions/v1/test-api`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({ 
-          platform: 'twitter',
-          handle: twitterHandle
-        })
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`API request failed with status ${response.status}: ${errorText}`);
-      }
-      
-      const result = await response.json();
-      console.log('Twitter API test result:', result);
-      setTwitterResult(result);
-      
-      if (!result.success) {
-        toast({
-          title: "Twitter API Check",
-          description: result.error || "Failed to check handle availability",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Twitter API Check",
-          description: result.message || "Successfully checked handle availability",
-        });
-      }
-    } catch (error) {
-      console.error('Error testing Twitter API:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      setTestError(`Failed to test Twitter API: ${errorMessage}`);
-      toast({
-        title: "API Test Failed",
-        description: errorMessage,
-        variant: "destructive"
-      });
-      setTwitterResult({ error: errorMessage });
-    } finally {
-      setIsTestingTwitter(false);
-    }
-  };
-  
-  const testTwitchApi = async () => {
-    if (!user) {
-      setTwitchResult({ error: 'Authentication required' });
-      return;
-    }
-    
-    setIsTestingTwitch(true);
-    setTwitchResult(null);
-    clearTestError();
-    
-    try {
-      // First check if we can reach the edge function
-      const isServerUp = await checkEdgeFunctionStatus();
-      if (!isServerUp) {
-        throw new Error('Cannot reach the API server. Please try again later.');
-      }
-      
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-      
-      if (!accessToken) {
-        throw new Error('No access token available');
-      }
-      
-      console.log('Testing Twitch API for handle:', twitchHandle);
-      
-      const response = await fetch(`https://mausvzbzorurkcoruhev.supabase.co/functions/v1/test-api`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-          'Cache-Control': 'no-cache'
-        },
-        body: JSON.stringify({ 
-          platform: 'twitch',
-          handle: twitchHandle
-        })
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`API request failed with status ${response.status}: ${errorText}`);
-      }
-      
-      const result = await response.json();
-      console.log('Twitch API test result:', result);
-      setTwitchResult(result);
-      
-      if (!result.success) {
-        toast({
-          title: "Twitch API Check",
-          description: result.error || "Failed to check handle availability",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Twitch API Check",
-          description: result.message || "Successfully checked handle availability",
-        });
-      }
-    } catch (error) {
-      console.error('Error testing Twitch API:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      setTestError(`Failed to test Twitch API: ${errorMessage}`);
-      toast({
-        title: "API Test Failed",
-        description: errorMessage,
-        variant: "destructive"
-      });
-      setTwitchResult({ error: errorMessage });
-    } finally {
-      setIsTestingTwitch(false);
-    }
-  };
 
   return (
     <div className="container max-w-4xl py-6">
       <h2 className="text-2xl font-bold mb-6">API Test Tool</h2>
       
-      <Alert variant={networkStatus.successful ? "default" : "destructive"} className="mb-6">
-        {networkStatus.successful ? <Server className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
-        <AlertTitle>{networkStatus.successful ? "System Status" : "Connection Issue"}</AlertTitle>
-        <AlertDescription>
-          {networkStatus.message}
-          {!networkStatus.successful && (
-            <div className="mt-2">
-              <Button size="sm" variant="outline" onClick={checkEdgeFunctionStatus}>
-                Check Again
-              </Button>
-            </div>
-          )}
-        </AlertDescription>
-      </Alert>
+      <NetworkStatus 
+        successful={networkStatus.successful}
+        message={networkStatus.message}
+        onCheck={checkEdgeFunctionStatus}
+      />
       
-      {testError && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            {testError}
-            <div className="mt-2 text-xs">
-              <p>Possible causes:</p>
-              <ul className="list-disc pl-5 mt-1">
-                <li>Network connection issues</li>
-                <li>Edge function not deployed or has errors</li>
-                <li>API credentials not configured in Supabase</li>
-                <li>Authentication token issues</li>
-              </ul>
-            </div>
-          </AlertDescription>
-        </Alert>  
-      )}
+      {testError && <ErrorDisplay error={testError} />}
       
       <Tabs defaultValue="twitter">
         <TabsList className="mb-4">
@@ -270,65 +57,17 @@ const ApiTest: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="twitter-handle">Handle to check</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="twitter-handle"
-                      value={twitterHandle}
-                      onChange={(e) => setTwitterHandle(e.target.value)}
-                      placeholder="Enter Twitter handle"
-                      disabled={isTestingTwitter}
-                    />
-                    <Button onClick={testTwitterApi} disabled={isTestingTwitter || !networkStatus.successful}>
-                      {isTestingTwitter ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : null}
-                      Test API
-                    </Button>
-                  </div>
-                </div>
-                
-                {twitterResult && (
-                  <div className="mt-4">
-                    <Separator className="my-4" />
-                    <h3 className="text-lg font-medium mb-3">Test Result:</h3>
-                    
-                    {twitterResult.error ? (
-                      <Alert variant="destructive">
-                        <XCircle className="h-4 w-4" />
-                        <AlertTitle>Error</AlertTitle>
-                        <AlertDescription>{twitterResult.error}</AlertDescription>
-                      </Alert>
-                    ) : (
-                      <div>
-                        <Alert variant={twitterResult.success ? "default" : "destructive"}>
-                          {twitterResult.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                          <AlertTitle>{twitterResult.success ? "Success" : "Failed"}</AlertTitle>
-                          <AlertDescription>
-                            {twitterResult.message || "API request completed"}
-                          </AlertDescription>
-                        </Alert>
-                        
-                        <div className="mt-4">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => setShowResponseData(!showResponseData)}
-                          >
-                            {showResponseData ? "Hide" : "Show"} Response Data
-                          </Button>
-                          
-                          {showResponseData && (
-                            <pre className="mt-2 p-4 bg-muted rounded-md text-xs overflow-auto">
-                              {JSON.stringify(twitterResult, null, 2)}
-                            </pre>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <PlatformTest
+                platform="twitter"
+                handle={twitterHandle}
+                onHandleChange={setTwitterHandle}
+                onTest={testTwitterApi}
+                isTesting={isTestingTwitter}
+                result={twitterResult}
+                showResponseData={showResponseData}
+                onToggleResponse={() => setShowResponseData(!showResponseData)}
+                isNetworkAvailable={networkStatus.successful}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -342,65 +81,17 @@ const ApiTest: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="twitch-handle">Handle to check</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="twitch-handle"
-                      value={twitchHandle}
-                      onChange={(e) => setTwitchHandle(e.target.value)}
-                      placeholder="Enter Twitch handle"
-                      disabled={isTestingTwitch}
-                    />
-                    <Button onClick={testTwitchApi} disabled={isTestingTwitch || !networkStatus.successful}>
-                      {isTestingTwitch ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : null}
-                      Test API
-                    </Button>
-                  </div>
-                </div>
-                
-                {twitchResult && (
-                  <div className="mt-4">
-                    <Separator className="my-4" />
-                    <h3 className="text-lg font-medium mb-3">Test Result:</h3>
-                    
-                    {twitchResult.error ? (
-                      <Alert variant="destructive">
-                        <XCircle className="h-4 w-4" />
-                        <AlertTitle>Error</AlertTitle>
-                        <AlertDescription>{twitchResult.error}</AlertDescription>
-                      </Alert>
-                    ) : (
-                      <div>
-                        <Alert variant={twitchResult.success ? "default" : "destructive"}>
-                          {twitchResult.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                          <AlertTitle>{twitchResult.success ? "Success" : "Failed"}</AlertTitle>
-                          <AlertDescription>
-                            {twitchResult.message || "API request completed"}
-                          </AlertDescription>
-                        </Alert>
-                        
-                        <div className="mt-4">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => setShowResponseData(!showResponseData)}
-                          >
-                            {showResponseData ? "Hide" : "Show"} Response Data
-                          </Button>
-                          
-                          {showResponseData && (
-                            <pre className="mt-2 p-4 bg-muted rounded-md text-xs overflow-auto">
-                              {JSON.stringify(twitchResult, null, 2)}
-                            </pre>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <PlatformTest
+                platform="twitch"
+                handle={twitchHandle}
+                onHandleChange={setTwitchHandle}
+                onTest={testTwitchApi}
+                isTesting={isTestingTwitch}
+                result={twitchResult}
+                showResponseData={showResponseData}
+                onToggleResponse={() => setShowResponseData(!showResponseData)}
+                isNetworkAvailable={networkStatus.successful}
+              />
             </CardContent>
           </Card>
         </TabsContent>
