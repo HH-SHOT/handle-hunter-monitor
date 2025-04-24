@@ -1,1 +1,12 @@
+
 project_id = "mausvzbzorurkcoruhev"
+
+[functions]
+[functions.check-handles]
+verify_jwt = true
+[functions.handle-scheduler]
+verify_jwt = true
+[functions.upgrade-plan]
+verify_jwt = true
+[functions.test-api]
+verify_jwt = true
